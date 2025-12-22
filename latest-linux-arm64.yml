@@ -1,8 +1,8 @@
-version: 0.3.9
+version: 0.4.0
 files:
-  - url: vitamin-browser_0.3.9_arm64.deb
-    sha512: 865557edd74638728dded6ee3de231e74f98a78d877b84a342c2b567e7c58012b6a8370242fb56f399d63dc6acfc73dccb4a34095a7fe009e277930377486720
-    size: 78802522
-path: vitamin-browser_0.3.9_arm64.deb
-sha512: 865557edd74638728dded6ee3de231e74f98a78d877b84a342c2b567e7c58012b6a8370242fb56f399d63dc6acfc73dccb4a34095a7fe009e277930377486720
-releaseDate: 2025-12-22T02:30:00.000Z
+  - url: vitamin-browser_0.4.0_arm64.deb
+    sha512: DfkwbsRV56Qy7zefuTwhC+c+oRIn8gTJKryXiCfHQ2M9UBtvQ274awBsevfHvUlaxOvZ1C65Zk76P+1Y7aOLPw==
+    size: 78814972
+path: vitamin-browser_0.4.0_arm64.deb
+sha512: DfkwbsRV56Qy7zefuTwhC+c+oRIn8gTJKryXiCfHQ2M9UBtvQ274awBsevfHvUlaxOvZ1C65Zk76P+1Y7aOLPw==
+releaseDate: '2025-12-22T23:24:17.422Z'
