@@ -1,0 +1,8 @@
+version: 0.3.9
+files:
+  - url: vitamin-browser_0.3.9_amd64.deb
+    sha512: 442729c2d653e6b6b5d2fede49da7ba880f9160146186204e801da0c1b402adfcb3bb326aad36bf7f2478a635b1a9db520548f898e49d8bee2a86546aa4f449c
+    size: 83627560
+path: vitamin-browser_0.3.9_amd64.deb
+sha512: 442729c2d653e6b6b5d2fede49da7ba880f9160146186204e801da0c1b402adfcb3bb326aad36bf7f2478a635b1a9db520548f898e49d8bee2a86546aa4f449c
+releaseDate: 2025-12-22T02:30:00.000Z
