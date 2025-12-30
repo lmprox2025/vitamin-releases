@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Tab</title>
+  <link rel="icon" type="image/png" href="../assets/icon.png">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --accent: #ff6b00;
+      --accent-light: #ff8533;
+    }
+
+    body.blueberry { --accent: #4a90d9; --accent-light: #6ba3e0; }
+    body.acai { --accent: #9b59b6; --accent-light: #af7ac5; }
+    body.emerald { --accent: #2ecc71; --accent-light: #58d68d; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0a0a0a;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0a0a0a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      position: relative;
+      min-height: 100vh;
+      transition: background-color 0.1s ease;
+    }
+
+    /* Light mode */
+    body.light {
+      background: #ffffff;
+    }
+
+    /* Animated glow effects */
+    .glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .glow-1 {
+      width: 600px;
+      height: 600px;
+      background: var(--accent);
+      top: -200px;
+      right: -100px;
+      animation: drift1 25s ease-in-out infinite;
+    }
+
+    .glow-2 {
+      width: 400px;
+      height: 400px;
+      background: var(--accent-light);
+      bottom: -150px;
+      left: -100px;
+      animation: drift2 30s ease-in-out infinite;
+    }
+
+    .glow-3 {
+      width: 300px;
+      height: 300px;
+      background: var(--accent);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.08;
+      animation: pulse 20s ease-in-out infinite;
+    }
+
+    /* Light mode glow effects */
+    body.light .glow-1 {
+      opacity: 0.4;
+    }
+
+    body.light .glow-2 {
+      opacity: 0.4;
+    }
+
+    body.light .glow-3 {
+      opacity: 0.3;
+    }
+
+    @keyframes drift1 {
+      0%, 100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.15;
+      }
+      25% {
+        transform: translate(-80px, 60px) scale(1.1);
+        opacity: 0.12;
+      }
+      50% {
+        transform: translate(-40px, 100px) scale(0.95);
+        opacity: 0.18;
+      }
+      75% {
+        transform: translate(40px, 40px) scale(1.05);
+        opacity: 0.13;
+      }
+    }
+
+    @keyframes drift2 {
+      0%, 100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.15;
+      }
+      33% {
+        transform: translate(100px, -60px) scale(1.15);
+        opacity: 0.12;
+      }
+      66% {
+        transform: translate(50px, -100px) scale(0.9);
+        opacity: 0.17;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.08;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0.05;
+      }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+    }
+
+    .logo {
+      font-size: 14px;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      color: #333;
+      user-select: none;
+    }
+
+    .logo-bold {
+      font-weight: 700;
+      color: #444;
+      transition: color 0.3s ease, text-shadow 0.3s ease;
+      cursor: pointer;
+    }
+
+    .logo-light {
+      font-weight: 400;
+    }
+
+    /* Poison active state - continuous neon glow */
+    .logo-bold.poison-active {
+      color: var(--accent);
+      text-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent), 0 0 20px var(--accent), 0 0 40px var(--accent);
+      animation: neon-glow 2s ease-in-out infinite;
+    }
+
+    /* Dark/orange theme specific - brighter neon orange */
+    body:not(.light):not(.blueberry):not(.acai):not(.emerald) .logo-bold.poison-active {
+      color: #ff8533;
+      text-shadow: 0 0 5px #ff6b00, 0 0 10px #ff6b00, 0 0 20px #ff8533, 0 0 40px #ff6b00;
+    }
+
+    /* Flicker on animation */
+    .logo-bold.flicker-on {
+      animation: neon-flicker-on 0.8s ease-out forwards;
+    }
+
+    /* Flicker off animation */
+    .logo-bold.flicker-off {
+      animation: neon-flicker-off 0.6s ease-out forwards;
+    }
+
+    @keyframes neon-flicker-on {
+      0% { color: #444; text-shadow: none; }
+      15% { color: var(--accent); text-shadow: 0 0 5px var(--accent); }
+      25% { color: #444; text-shadow: none; }
+      40% { color: var(--accent); text-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent); }
+      55% { color: var(--accent); text-shadow: 0 0 2px var(--accent); opacity: 0.7; }
+      70% { color: var(--accent); text-shadow: 0 0 5px var(--accent), 0 0 15px var(--accent), 0 0 30px var(--accent); }
+      85% { color: var(--accent); text-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent); }
+      100% { color: var(--accent); text-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent), 0 0 20px var(--accent), 0 0 40px var(--accent); }
+    }
+
+    @keyframes neon-flicker-off {
+      0% { color: var(--accent); text-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent), 0 0 20px var(--accent), 0 0 40px var(--accent); }
+      20% { text-shadow: 0 0 5px var(--accent); }
+      35% { text-shadow: 0 0 10px var(--accent); }
+      50% { text-shadow: none; opacity: 0.5; }
+      65% { text-shadow: 0 0 3px var(--accent); }
+      80% { text-shadow: none; }
+      100% { color: #444; text-shadow: none; }
+    }
+
+    @keyframes neon-glow {
+      0%, 100% { text-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent), 0 0 20px var(--accent), 0 0 40px var(--accent); }
+      50% { text-shadow: 0 0 2px var(--accent), 0 0 5px var(--accent), 0 0 10px var(--accent), 0 0 20px var(--accent); }
+    }
+
+    /* Logo hover effects for different themes */
+    .logo-bold:hover {
+      color: #ff6b00;
+      animation: glow-flicker 1.5s infinite;
+    }
+
+    body.light .logo-bold:hover {
+      color: #ff6b00;
+      animation: glow-flicker 1.5s infinite;
+    }
+
+    body.blueberry .logo-bold:hover {
+      color: #4A90E2;
+      animation: glow-flicker 1.5s infinite;
+    }
+
+    body.acai .logo-bold:hover {
+      color: #7B68EE;
+      animation: glow-flicker 1.5s infinite;
+    }
+
+    body.emerald .logo-bold:hover {
+      color: #00FF41;
+      animation: glow-flicker 1.5s infinite;
+    }
+
+    /* Glow and flicker animation - Neon-like flickering effect */
+    @keyframes glow-flicker {
+      0% {
+        opacity: 0.8;
+        filter: brightness(0.9);
+        text-shadow: 0 0 2px currentColor, 0 0 5px currentColor;
+      }
+      10% {
+        opacity: 0.9;
+        filter: brightness(1.1);
+        text-shadow: 0 0 3px currentColor, 0 0 8px currentColor;
+      }
+      20% {
+        opacity: 1;
+        filter: brightness(1.2);
+        text-shadow: 0 0 5px currentColor, 0 0 12px currentColor;
+      }
+      30% {
+        opacity: 0.95;
+        filter: brightness(1);
+        text-shadow: 0 0 4px currentColor, 0 0 10px currentColor;
+      }
+      40% {
+        opacity: 0.9;
+        filter: brightness(1.1);
+        text-shadow: 0 0 5px currentColor, 0 0 12px currentColor;
+      }
+      50% {
+        opacity: 0.85;
+        filter: brightness(0.95);
+        text-shadow: 0 0 3px currentColor, 0 0 8px currentColor;
+      }
+      60% {
+        opacity: 0.9;
+        filter: brightness(1.05);
+        text-shadow: 0 0 4px currentColor, 0 0 10px currentColor;
+      }
+      70% {
+        opacity: 1;
+        filter: brightness(1.2);
+        text-shadow: 0 0 5px currentColor, 0 0 15px currentColor;
+      }
+      80% {
+        opacity: 0.9;
+        filter: brightness(1);
+        text-shadow: 0 0 4px currentColor, 0 0 10px currentColor;
+      }
+      90% {
+        opacity: 0.85;
+        filter: brightness(0.95);
+        text-shadow: 0 0 3px currentColor, 0 0 7px currentColor;
+      }
+      100% {
+        opacity: 0.8;
+        filter: brightness(0.9);
+        text-shadow: 0 0 2px currentColor, 0 0 5px currentColor;
+      }
+    }
+
+    /* Fade in and out animations for logo hover */
+    @keyframes logo-fade-in {
+      0% {
+        opacity: 1;
+        text-shadow: none;
+      }
+      100% {
+        opacity: 1;
+        text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+      }
+    }
+
+    @keyframes logo-fade-out {
+      0% {
+        opacity: 1;
+        text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+      }
+      100% {
+        opacity: 1;
+        text-shadow: none;
+      }
+    }
+
+    /* Logo fade in/out classes */
+    .logo-fade-in {
+      animation: logo-fade-in 0.3s ease-out forwards;
+    }
+
+    .logo-fade-out {
+      animation: logo-fade-out 0.5s ease-out forwards;
+    }
+
+    /* Theme-specific logo colors */
+    .logo-bold.theme-light {
+      color: #ff6b00; /* Orange for light theme */
+    }
+
+    .logo-bold.theme-blueberry {
+      color: #4A90E2; /* Blueberry blue */
+    }
+
+    .logo-bold.theme-acai {
+      color: #7B68EE; /* Acai purple */
+    }
+
+    .logo-bold.theme-emerald {
+      color: #00FF41; /* Emerald green */
+    }
+
+    .logo-bold.theme-dark {
+      color: #444; /* Default dark theme */
+    }
+
+    /* Theme-specific logo glow effects */
+    .logo-bold.glow-light {
+      text-shadow: 0 0 5px #ff6b00, 0 0 10px #ff6b00;
+    }
+
+    .logo-bold.glow-blueberry {
+      text-shadow: 0 0 5px #4A90E2, 0 0 10px #4A90E2;
+    }
+
+    .logo-bold.glow-acai {
+      text-shadow: 0 0 5px #7B68EE, 0 0 10px #7B68EE;
+    }
+
+    .logo-bold.glow-emerald {
+      text-shadow: 0 0 5px #00FF41, 0 0 10px #00FF41;
+    }
+
+    /* Version number styling */
+    .version {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      text-align: center;
+      margin-top: 8px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    /* Logo glowing state */
+    .logo-glowing {
+      animation: glow-flicker 1.5s infinite;
+    }
+
+    .search-container {
+      position: relative;
+      width: 580px;
+      max-width: calc(100vw - 40px);
+    }
+
+    .search-box {
+      width: 100%;
+      height: 52px;
+      padding: 0 24px;
+      padding-left: 52px;
+      border: 1px solid #1a1a1a;
+      border-radius: 16px;
+      background: rgba(20, 20, 20, 0.8);
+      backdrop-filter: blur(20px);
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    /* Light mode search box */
+    body.light .search-box {
+      border: 1px solid #e0e0e0;
+      background: rgba(255, 255, 255, 0.8);
+      color: #333;
+    }
+
+    .search-box:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(25, 25, 25, 0.9);
+      box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.1);
+    }
+
+    body.blueberry .search-box:focus { box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.2); }
+    body.acai .search-box:focus { box-shadow: 0 0 0 4px rgba(155, 89, 182, 0.2); }
+    body.emerald .search-box:focus { box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.2); }
+
+    /* Light mode focused search box */
+    body.light .search-box:focus {
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.2);
+    }
+
+    body.light.blueberry .search-box:focus { box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.3); }
+    body.light.acai .search-box:focus { box-shadow: 0 0 0 4px rgba(155, 89, 182, 0.3); }
+    body.light.emerald .search-box:focus { box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.3); }
+
+    .search-box::placeholder {
+      color: #444;
+    }
+
+    /* Light mode placeholder */
+    body.light .search-box::placeholder {
+      color: #888;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: #444;
+      pointer-events: none;
+      transition: color 0.2s ease;
+    }
+
+    /* Light mode search icon */
+    body.light .search-icon {
+      color: #888;
+    }
+
+    .search-box:focus + .search-icon {
+      color: var(--accent);
+    }
+
+    /* Hide blobs for emerald theme - show Matrix instead */
+    body.emerald .glow {
+      display: none;
+    }
+
+    /* Matrix rain canvas */
+    #matrix-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0;
+      filter: blur(0.5px);
+      transition: opacity 0.5s ease;
+    }
+
+    body.emerald #matrix-canvas {
+      opacity: 0.18;
+      filter: blur(0.5px);
+    }
+
+    /* CRT Effect for Emerald theme */
+    .crt-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body.emerald .crt-overlay {
+      display: block;
+    }
+
+    /* Scanlines */
+    .crt-overlay::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+    }
+
+    /* Vignette + subtle flicker */
+    .crt-overlay::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 0%,
+        transparent 50%,
+        rgba(0, 0, 0, 0.4) 100%
+      );
+      pointer-events: none;
+      animation: crt-flicker 0.1s infinite;
+    }
+
+    @keyframes crt-flicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.98; }
+    }
+
+    /* Performance mode - disable all animations */
+    body.performance-mode * {
+      animation: none !important;
+      animation-duration: 0s !important;
+      transition: none !important;
+      transition-duration: 0s !important;
+    }
+
+    body.performance-mode #matrix-canvas {
+      display: none !important;
+    }
+
+    body.performance-mode .glow {
+      animation: none !important;
+      opacity: 0.1 !important;
+    }
+
+    body.performance-mode .crt-overlay::after {
+      animation: none !important;
+    }
+
+  </style>
+</head>
+<body>
+  <canvas id="matrix-canvas"></canvas>
+  <div class="crt-overlay"></div>
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+  <div class="glow glow-3"></div>
+
+  <div class="container">
+    <div class="logo">
+      <span class="logo-bold">Vita</span><span class="logo-light">min</span>
+      <div class="version" id="app-version">v0.0.0</div>
+    </div>
+
+    <div class="search-container">
+      <input
+        type="text"
+        class="search-box"
+        id="search"
+        placeholder="Search with DuckDuckGo"
+        autofocus
+      />
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    // Track performance mode state - check localStorage first for immediate response
+    let performanceModeEnabled = localStorage.getItem('vitamin-performance-mode') === 'true';
+
+    // Apply performance mode class immediately if enabled (before any animations start)
+    if (performanceModeEnabled) {
+      document.body.classList.add('performance-mode');
+    }
+
+    // Fetch and display app version
+    function updateAppVersion() {
+      if (window.vitamin && window.vitamin.getAppVersion) {
+        window.vitamin.getAppVersion().then(version => {
+          document.getElementById('app-version').textContent = 'v' + version;
+          // Save to localStorage as fallback
+          localStorage.setItem('vitamin-version', version);
+        }).catch(err => {
+          // Fallback to localStorage if IPC fails
+          const savedVersion = localStorage.getItem('vitamin-version');
+          if (savedVersion) {
+            document.getElementById('app-version').textContent = 'v' + savedVersion;
+          }
+        });
+      } else {
+        // Fallback to localStorage if window.vitamin is not available
+        const savedVersion = localStorage.getItem('vitamin-version');
+        if (savedVersion) {
+          document.getElementById('app-version').textContent = 'v' + savedVersion;
+        }
+      }
+    }
+
+    // Update version immediately and periodically to ensure it's always correct
+    updateAppVersion();
+    setInterval(updateAppVersion, 1000);
+
+    // Check for performance mode on page load (authoritative check via IPC)
+    if (window.vitamin && window.vitamin.getSettings) {
+      window.vitamin.getSettings().then(settings => {
+        if (settings && settings.performanceMode) {
+          performanceModeEnabled = true;
+          document.body.classList.add('performance-mode');
+          localStorage.setItem('vitamin-performance-mode', 'true');
+          // Stop matrix if it was started before settings loaded
+          stopMatrix();
+        } else {
+          performanceModeEnabled = false;
+          document.body.classList.remove('performance-mode');
+          localStorage.setItem('vitamin-performance-mode', 'false');
+        }
+      });
+    }
+
+    // Listen for performance mode changes from main process
+    if (window.vitamin && window.vitamin.onPerformanceModeChange) {
+      window.vitamin.onPerformanceModeChange((enabled) => {
+        performanceModeEnabled = enabled;
+        if (enabled) {
+          document.body.classList.add('performance-mode');
+          localStorage.setItem('vitamin-performance-mode', 'true');
+          stopMatrix();
+        } else {
+          document.body.classList.remove('performance-mode');
+          localStorage.setItem('vitamin-performance-mode', 'false');
+          // Restart matrix if emerald theme is active
+          if (document.body.classList.contains('emerald')) {
+            startMatrix();
+          }
+        }
+      });
+    }
+
+    // Fetch initial poison state to sync VITA glow
+    if (window.vitamin && window.vitamin.getPoisonState) {
+      window.vitamin.getPoisonState().then(enabled => {
+        const logoBold = document.querySelector('.logo-bold');
+        if (logoBold && enabled) {
+          logoBold.classList.remove('logo-glowing', 'logo-fade-in', 'logo-fade-out', 'flicker-off', 'flicker-on');
+          logoBold.classList.remove('glow-light', 'glow-blueberry', 'glow-acai', 'glow-emerald');
+          logoBold.classList.add('poison-active');
+        }
+      });
+    }
+
+    const searchBox = document.getElementById('search');
+    const allThemeClasses = ['light', 'blueberry', 'acai', 'emerald'];
+
+    // Matrix rain effect - More authentic Matrix-style implementation
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    let matrixAnimationId = null;
+    let drops = [];
+
+    // Classic Matrix characters - Katakana, Latin, and symbols
+    const chars = "アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$#@%&*+-/<>{}[]!?";
+    const fontSize = 14;
+    let columnsCount = Math.floor(window.innerWidth / fontSize);
+
+    // Initialize columns
+    function initMatrix() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      // Preserve existing drops when possible, only adjust for size changes
+      const newColumnsCount = Math.floor(window.innerWidth / fontSize);
+
+      // If we have more columns now, add new drops
+      if (newColumnsCount > drops.length) {
+        for (let i = drops.length; i < newColumnsCount; i++) {
+          drops[i] = Math.floor(Math.random() * -100) * fontSize;
+        }
+      }
+      // If we have fewer columns, truncate the array
+      else if (newColumnsCount < drops.length) {
+        drops = drops.slice(0, newColumnsCount);
+      }
+
+      columnsCount = newColumnsCount;
+    }
+
+    // Draw the Matrix rain
+    function drawMatrix() {
+      // Semi-transparent black overlay for trail effect
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font = `${fontSize}px monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        // Get random character
+        const text = chars[Math.floor(Math.random() * chars.length)];
+
+        // Draw character with gradient effect
+        // Head character is brighter
+        if (Math.random() > 0.975) {
+          ctx.fillStyle = '#00FF41'; // Bright matrix green
+        } else {
+          ctx.fillStyle = '#008F11'; // Dimmer green
+        }
+
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        // Reset drop if it reaches bottom or randomly
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+
+        // Move drop down
+        drops[i]++;
+      }
+
+      matrixAnimationId = requestAnimationFrame(drawMatrix);
+    }
+
+    function startMatrix() {
+      // Don't start matrix in performance mode
+      if (performanceModeEnabled) {
+        return;
+      }
+
+      // Only reinitialize if matrix isn't running or canvas size changed
+      if (!matrixAnimationId) {
+        initMatrix();
+      } else {
+        // Check if canvas size changed
+        if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+          initMatrix();
+        }
+      }
+
+      if (matrixAnimationId) {
+        cancelAnimationFrame(matrixAnimationId);
+      }
+      matrixAnimationId = requestAnimationFrame(drawMatrix);
+    }
+
+    function stopMatrix() {
+      if (matrixAnimationId) {
+        cancelAnimationFrame(matrixAnimationId);
+        matrixAnimationId = null;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (document.body.classList.contains('emerald')) {
+        // Only reinitialize if the size actually changed
+        if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+          initMatrix();
+        }
+      }
+    });
+
+    function applyTheme(theme) {
+      // Remove any existing theme classes
+      document.body.classList.remove('light', 'blueberry', 'acai', 'emerald');
+
+      // Add the appropriate theme class
+      if (theme !== 'dark') {
+        document.body.classList.add(theme);
+      }
+
+      // Update logo colors based on theme using CSS classes
+      const logoBold = document.querySelector('.logo-bold');
+      if (logoBold) {
+        // Remove all theme classes
+        logoBold.classList.remove('theme-light', 'theme-blueberry', 'theme-acai', 'theme-emerald', 'theme-dark');
+
+        // Add the appropriate theme class
+        switch(theme) {
+          case 'light':
+            logoBold.classList.add('theme-light');
+            break;
+          case 'blueberry':
+            logoBold.classList.add('theme-blueberry');
+            break;
+          case 'acai':
+            logoBold.classList.add('theme-acai');
+            break;
+          case 'emerald':
+            logoBold.classList.add('theme-emerald');
+            break;
+          default:
+            logoBold.classList.add('theme-dark');
+        }
+      }
+
+      // Start/stop Matrix effect based on theme (only if performance mode is off)
+      if (theme === 'emerald' && !performanceModeEnabled) {
+        startMatrix();
+      } else {
+        stopMatrix();
+      }
+
+      // Ensure proper background color
+      document.body.style.backgroundColor = theme === 'light' ? '#ffffff' : '#0a0a0a';
+    }
+
+    // Check for theme preference in localStorage
+    const savedTheme = localStorage.getItem('vitamin-theme');
+    if (savedTheme) {
+      applyTheme(savedTheme);
+    }
+
+    // Initialize Matrix effect if Emerald theme is active on page load (only if performance mode is off)
+    if (document.body.classList.contains('emerald') && !performanceModeEnabled) {
+      startMatrix();
+    }
+
+    // Get current tier and update logo
+    if (window.chrome && window.chrome.ipcRenderer) {
+      window.chrome.ipcRenderer.invoke('get-settings').then(settings => {
+        if (settings && settings.tier) {
+          updateLogoForTier(settings.tier);
+        }
+      });
+    }
+
+    // Listen for theme changes from main process
+    if (window.chrome && window.chrome.ipcRenderer) {
+      window.chrome.ipcRenderer.on('theme-change', (event, theme) => {
+        applyTheme(theme);
+        localStorage.setItem('vitamin-theme', theme);
+      });
+
+      // Listen for poison state changes from main process
+      window.chrome.ipcRenderer.on('poison-state', (event, enabled) => {
+        const logoBold = document.querySelector('.logo-bold');
+        if (!logoBold) return;
+
+        if (enabled) {
+          // When poison is enabled, remove any hover effects and add the poison glow
+          logoBold.classList.remove('logo-glowing', 'logo-fade-in', 'logo-fade-out', 'flicker-off', 'flicker-on');
+
+          // Remove any theme glow classes
+          logoBold.classList.remove('glow-light', 'glow-blueberry', 'glow-acai', 'glow-emerald');
+
+          logoBold.classList.add('poison-active');
+        } else {
+          // When poison is disabled, remove glow and add flicker-out effect
+          logoBold.classList.remove('poison-active', 'flicker-on');
+          logoBold.classList.add('flicker-off');
+
+          // Check if mouse is currently hovering and re-enable hover effects after flicker
+          const isHovering = logoBold.matches(':hover');
+          setTimeout(() => {
+            logoBold.classList.remove('flicker-off');
+            // If still hovering, re-enable hover effects
+            if (isHovering) {
+              const themeGlowClass = getThemeGlowClass();
+              logoBold.classList.add(themeGlowClass);
+              logoBold.classList.add('logo-fade-in');
+              setTimeout(() => {
+                logoBold.classList.remove('logo-fade-in');
+                logoBold.classList.add('logo-glowing');
+              }, 300);
+            }
+          }, 600);
+        }
+      });
+
+      // Listen for performance mode changes from main process
+      window.chrome.ipcRenderer.on('performance-mode-change', (event, enabled) => {
+        performanceModeEnabled = enabled;
+        if (enabled) {
+          document.body.classList.add('performance-mode');
+          localStorage.setItem('vitamin-performance-mode', 'true');
+          stopMatrix();
+        } else {
+          document.body.classList.remove('performance-mode');
+          localStorage.setItem('vitamin-performance-mode', 'false');
+          if (document.body.classList.contains('emerald')) {
+            startMatrix();
+          }
+        }
+      });
+    } else {
+      // Also listen for messages from parent window (for when this is used as start page in browser)
+      window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'theme-change') {
+          applyTheme(event.data.theme);
+          localStorage.setItem('vitamin-theme', event.data.theme);
+        }
+      });
+    }
+
+    // Fallback: Watch for class changes on body element to detect theme changes
+    // This helps ensure the Matrix effect starts even if IPC messages aren't received
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const isEmerald = document.body.classList.contains('emerald');
+          const matrixRunning = matrixAnimationId !== null;
+
+          // Start Matrix if theme is Emerald but it's not running (and performance mode is off)
+          if (isEmerald && !matrixRunning && !performanceModeEnabled) {
+            startMatrix();
+          }
+          // Stop Matrix if theme is not Emerald but it's running
+          else if (!isEmerald && matrixRunning) {
+            stopMatrix();
+          }
+        }
+      });
+    });
+
+    // Start observing class changes on body element
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    // Fallback: Periodically check localStorage for theme changes
+    // This helps ensure theme is applied even if IPC messages aren't received
+    setInterval(() => {
+      const currentTheme = localStorage.getItem('vitamin-theme') || 'dark';
+
+      // Determine what theme the body currently has
+      const hasLight = document.body.classList.contains('light');
+      const hasBlueberry = document.body.classList.contains('blueberry');
+      const hasAcai = document.body.classList.contains('acai');
+      const hasEmerald = document.body.classList.contains('emerald');
+
+      let bodyTheme = 'dark';
+      if (hasLight) bodyTheme = 'light';
+      else if (hasBlueberry) bodyTheme = 'blueberry';
+      else if (hasAcai) bodyTheme = 'acai';
+      else if (hasEmerald) bodyTheme = 'emerald';
+
+      // If there's a mismatch, apply the correct theme
+      if (bodyTheme !== currentTheme) {
+        applyTheme(currentTheme);
+      }
+    }, 100);
+
+    // Check localStorage for poison state changes
+    let lastPoisonState = null;
+    setInterval(() => {
+      const poisonActive = localStorage.getItem('vitamin-poison-active') === 'true';
+      const logoBold = document.querySelector('.logo-bold');
+
+      if (logoBold && poisonActive !== lastPoisonState) {
+        if (poisonActive) {
+          // Flicker on
+          logoBold.classList.remove('flicker-off', 'poison-active');
+          logoBold.classList.add('flicker-on');
+          setTimeout(() => {
+            logoBold.classList.remove('flicker-on');
+            logoBold.classList.add('poison-active');
+          }, 800);
+        } else if (lastPoisonState !== null) {
+          // Flicker off (only if we had a previous state, not on initial load)
+          logoBold.classList.remove('poison-active', 'flicker-on');
+          logoBold.classList.add('flicker-off');
+          setTimeout(() => {
+            logoBold.classList.remove('flicker-off');
+          }, 600);
+        }
+        lastPoisonState = poisonActive;
+      }
+    }, 100);
+
+    searchBox.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && searchBox.value.trim()) {
+        const query = encodeURIComponent(searchBox.value.trim());
+        // Send search query to main process instead of direct navigation
+        if (window.chrome && window.chrome.ipcRenderer) {
+          window.chrome.ipcRenderer.send('search-request', query);
+        } else {
+          // Fallback to direct navigation if IPC is not available
+          window.location.href = `https://duckduckgo.com/?q=${query}`;
+        }
+      }
+    });
+
+    // Ensure proper centering on page load
+    window.addEventListener('load', () => {
+      document.body.style.display = 'flex';
+      document.body.style.alignItems = 'center';
+      document.body.style.justifyContent = 'center';
+
+      // Apply theme when DOM is ready
+      const savedTheme = localStorage.getItem('vitamin-theme') || 'dark';
+      applyTheme(savedTheme);
+
+      // Update version when DOM is ready
+      updateAppVersion();
+    });
+
+    // Also listen for DOMContentLoaded event
+    document.addEventListener('DOMContentLoaded', () => {
+      // Apply theme when DOM is ready
+      const savedTheme = localStorage.getItem('vitamin-theme') || 'dark';
+      applyTheme(savedTheme);
+
+      // Update version when DOM is ready
+      updateAppVersion();
+    });
+
+    // Logo hover effects with fade in/out
+    const logoBold = document.querySelector('.logo-bold');
+    let fadeOutTimeout;
+
+    // Click Vita to go to vitaminbrowser.com
+    logoBold.addEventListener('click', () => {
+      window.location.href = 'https://vitaminbrowser.com';
+    });
+
+    // Function to get the current theme glow class
+    function getThemeGlowClass() {
+      if (document.body.classList.contains('light')) {
+        return 'glow-light'; // Orange for light theme
+      } else if (document.body.classList.contains('blueberry')) {
+        return 'glow-blueberry'; // Blueberry blue
+      } else if (document.body.classList.contains('acai')) {
+        return 'glow-acai'; // Acai purple
+      } else if (document.body.classList.contains('emerald')) {
+        return 'glow-emerald'; // Emerald green
+      } else {
+        return 'glow-light'; // Default orange for dark theme
+      }
+    }
+
+    logoBold.addEventListener('mouseenter', function() {
+      // Clear any existing fade out timeout
+      clearTimeout(fadeOutTimeout);
+
+      // Remove any existing fade out class
+      this.classList.remove('logo-fade-out');
+
+      // Only add hover effects if poison is not active
+      if (!this.classList.contains('poison-active')) {
+        // Get the current theme glow class
+        const themeGlowClass = getThemeGlowClass();
+
+        // Add glow effect with theme class
+        this.classList.add(themeGlowClass);
+
+        // Add fade in animation class
+        this.classList.add('logo-fade-in');
+
+        // Remove fade in class after animation completes and start flickering
+        setTimeout(() => {
+          this.classList.remove('logo-fade-in');
+          this.classList.add('logo-glowing');
+        }, 300);
+      }
+    });
+
+    logoBold.addEventListener('mouseleave', function() {
+      // Clear any existing fade out timeout
+      clearTimeout(fadeOutTimeout);
+
+      // Remove glowing class
+      this.classList.remove('logo-glowing');
+
+      // Get the current theme glow class
+      const themeGlowClass = getThemeGlowClass();
+
+      // Only remove hover effects if poison is not active
+      if (!this.classList.contains('poison-active')) {
+        // Start fade out after a short delay to allow flickering to continue
+        fadeOutTimeout = setTimeout(() => {
+          // Add fade out animation
+          this.classList.add('logo-fade-out');
+
+          // Remove glow effect after fade out completes
+          setTimeout(() => {
+            this.classList.remove(themeGlowClass);
+            this.classList.remove('logo-fade-out');
+          }, 500);
+        }, 200);
+      }
+    });
+
+    // Audio context for neon flicker sound effects
+    let audioContext = null;
+    let neonHumOscillator = null;
+    let neonHumGain = null;
+    let isNeonSoundInitialized = false;
+    let isNeonSoundPlaying = false;
+
+    // Initialize audio context on first user interaction
+    function initNeonSound() {
+      if (isNeonSoundInitialized) return;
+
+      try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        isNeonSoundInitialized = true;
+      } catch (e) {
+        console.warn('Audio context not supported:', e);
+      }
+    }
+
+    // Play continuous neon hum sound
+    function startNeonHum() {
+      if (!isNeonSoundInitialized || !audioContext || isNeonSoundPlaying) return;
+
+      try {
+        // Create a more realistic fluorescent light buzz
+        neonHumOscillator = audioContext.createOscillator();
+        neonHumGain = audioContext.createGain();
+
+        // Use multiple frequencies to create a richer, more realistic buzz
+        neonHumOscillator.type = 'sawtooth';
+        neonHumOscillator.frequency.setValueAtTime(120, audioContext.currentTime); // Base frequency
+
+        // Add slight modulation for realism
+        neonHumOscillator.frequency.setValueAtTime(122, audioContext.currentTime + 0.5);
+        neonHumOscillator.frequency.setValueAtTime(118, audioContext.currentTime + 1.0);
+        neonHumOscillator.frequency.setValueAtTime(120, audioContext.currentTime + 1.5);
+
+        // Very quiet but audible electrical hum
+        neonHumGain.gain.setValueAtTime(0.02, audioContext.currentTime);
+
+        // Add subtle noise for realism
+        const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 1.0, audioContext.sampleRate);
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseData.length; i++) {
+          // Create a more natural noise pattern
+          noiseData[i] = (Math.random() * 2 - 1) * 0.008;
+        }
+        const noiseNode = audioContext.createBufferSource();
+        noiseNode.buffer = noiseBuffer;
+        const noiseGain = audioContext.createGain();
+        noiseGain.gain.setValueAtTime(0.008, audioContext.currentTime);
+
+        // Add a slight filter to make it sound more like a real fluorescent light
+        const filter = audioContext.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1000, audioContext.currentTime);
+        filter.Q.setValueAtTime(1.0, audioContext.currentTime);
+
+        // Mix oscillator and noise
+        const mixer = audioContext.createGain();
+        neonHumOscillator.connect(neonHumGain);
+        noiseNode.connect(noiseGain);
+        neonHumGain.connect(mixer);
+        noiseGain.connect(filter);
+        filter.connect(mixer);
+        mixer.connect(audioContext.destination);
+
+        // Start playing
+        neonHumOscillator.start();
+        noiseNode.start();
+        noiseNode.loop = true;
+
+        isNeonSoundPlaying = true;
+
+      } catch (e) {
+        console.warn('Error starting neon hum:', e);
+      }
+    }
+
+    // Stop neon hum sound
+    function stopNeonHum() {
+      if (!isNeonSoundPlaying) return;
+
+      try {
+        if (neonHumOscillator) {
+          // Smooth fade out to avoid clicking
+          neonHumGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.2);
+          setTimeout(() => {
+            if (neonHumOscillator) {
+              neonHumOscillator.stop();
+              neonHumOscillator = null;
+            }
+          }, 200);
+        }
+        isNeonSoundPlaying = false;
+      } catch (e) {
+        console.warn('Error stopping neon hum:', e);
+      }
+    }
+
+    // Play a short flicker sound (for on/off transitions)
+    function playFlickerSound() {
+      if (!isNeonSoundInitialized || !audioContext) return;
+
+      try {
+        // Create a more realistic flicker sound with multiple components
+        const oscillator1 = audioContext.createOscillator();
+        const oscillator2 = audioContext.createOscillator();
+        const gainNode1 = audioContext.createGain();
+        const gainNode2 = audioContext.createGain();
+        const masterGain = audioContext.createGain();
+
+        // Main flicker frequency
+        oscillator1.type = 'sawtooth';
+        oscillator1.frequency.setValueAtTime(180, audioContext.currentTime);
+
+        // Secondary harmonic
+        oscillator2.type = 'square';
+        oscillator2.frequency.setValueAtTime(360, audioContext.currentTime);
+
+        // Quick envelope for natural flicker
+        gainNode1.gain.setValueAtTime(0.015, audioContext.currentTime);
+        gainNode1.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.05);
+
+        gainNode2.gain.setValueAtTime(0.008, audioContext.currentTime);
+        gainNode2.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.04);
+
+        masterGain.gain.setValueAtTime(1.0, audioContext.currentTime);
+        masterGain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.05);
+
+        // Connect the nodes
+        oscillator1.connect(gainNode1);
+        oscillator2.connect(gainNode2);
+        gainNode1.connect(masterGain);
+        gainNode2.connect(masterGain);
+        masterGain.connect(audioContext.destination);
+
+        // Start and stop quickly
+        oscillator1.start();
+        oscillator2.start();
+        oscillator1.stop(audioContext.currentTime + 0.05);
+        oscillator2.stop(audioContext.currentTime + 0.05);
+
+      } catch (e) {
+        console.warn('Error playing flicker sound:', e);
+      }
+    }
+
+    // Add event listeners for neon sound control
+    function addNeonSoundListeners() {
+      // Listen for poison state changes
+      const poisonBtn = document.querySelector('.poison-btn');
+      if (poisonBtn) {
+        // When poison is activated (glowing)
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+              initNeonSound();
+              if (poisonBtn.classList.contains('active')) {
+                // Poison activated - play flicker then start continuous hum
+                playFlickerSound();
+                setTimeout(() => startNeonHum(), 100);
+              } else {
+                // Poison deactivated - stop continuous hum then play flicker
+                stopNeonHum();
+                setTimeout(() => playFlickerSound(), 50);
+              }
+            }
+          });
+        });
+
+        observer.observe(poisonBtn, { attributes: true });
+      }
+
+      // Also listen for logo glow state changes
+      const logoBold = document.querySelector('.logo-bold');
+      if (logoBold) {
+        const logoObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+              initNeonSound();
+              if (logoBold.classList.contains('poison-active') || logoBold.classList.contains('logo-glowing')) {
+                // Logo is glowing - play flicker then start continuous hum
+                playFlickerSound();
+                setTimeout(() => startNeonHum(), 100);
+              } else if (!logoBold.classList.contains('poison-active')) {
+                // Logo stopped glowing - stop continuous hum then play flicker
+                stopNeonHum();
+                setTimeout(() => playFlickerSound(), 50);
+              }
+            }
+          });
+        });
+
+        logoObserver.observe(logoBold, { attributes: true });
+      }
+    }
+
+  </script>
+</body>
+</html>

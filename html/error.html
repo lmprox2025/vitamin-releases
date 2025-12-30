@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oops!</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --accent: #ff6b00;
+      --accent-dim: #cc5500;
+      --accent-light: #ff8533;
+    }
+
+    body.blueberry { --accent: #4a90d9; --accent-dim: #3a7bc8; --accent-light: #6ba3e0; }
+    body.acai { --accent: #9b59b6; --accent-dim: #8e44ad; --accent-light: #af7ac5; }
+    body.emerald { --accent: #2ecc71; --accent-dim: #27ae60; --accent-light: #58d68d; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      background: #0d0d0d;
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Light mode */
+    body.light {
+      background: #ffffff;
+      color: #333333;
+    }
+
+    /* Animated glow effects */
+    .glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .glow-1 {
+      width: 600px;
+      height: 600px;
+      background: var(--accent);
+      top: -200px;
+      right: -100px;
+      animation: drift1 25s ease-in-out infinite;
+    }
+
+    .glow-2 {
+      width: 400px;
+      height: 400px;
+      background: var(--accent-light);
+      bottom: -150px;
+      left: -100px;
+      animation: drift2 30s ease-in-out infinite;
+    }
+
+    .glow-3 {
+      width: 300px;
+      height: 300px;
+      background: var(--accent);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.08;
+      animation: pulse 20s ease-in-out infinite;
+    }
+
+    /* Light mode glow effects */
+    body.light .glow-1 {
+      opacity: 0.4;
+    }
+
+    body.light .glow-2 {
+      opacity: 0.4;
+    }
+
+    body.light .glow-3 {
+      opacity: 0.3;
+    }
+
+    @keyframes drift1 {
+      0%, 100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.15;
+      }
+      25% {
+        transform: translate(-80px, 60px) scale(1.1);
+        opacity: 0.12;
+      }
+      50% {
+        transform: translate(-40px, 100px) scale(0.95);
+        opacity: 0.18;
+      }
+      75% {
+        transform: translate(40px, 40px) scale(1.05);
+        opacity: 0.13;
+      }
+    }
+
+    @keyframes drift2 {
+      0%, 100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.15;
+      }
+      33% {
+        transform: translate(100px, -60px) scale(1.15);
+        opacity: 0.12;
+      }
+      66% {
+        transform: translate(50px, -100px) scale(0.9);
+        opacity: 0.17;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.08;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0.05;
+      }
+    }
+
+    .error-container {
+      position: relative;
+      z-index: 1;
+      max-width: 450px;
+    }
+
+    .kitty {
+      width: 150px;
+      height: auto;
+      margin-bottom: 24px;
+      animation: wiggle 2s ease-in-out infinite;
+    }
+
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(-3deg); }
+      50% { transform: rotate(3deg); }
+    }
+
+    .message {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .submessage {
+      font-size: 16px;
+      color: #888888;
+      margin-bottom: 8px;
+    }
+
+    body.light .submessage {
+      color: #666666;
+    }
+
+    .error-code {
+      font-size: 13px;
+      color: #555555;
+      font-family: monospace;
+      margin-bottom: 16px;
+    }
+
+    body.light .error-code {
+      color: #888888;
+    }
+
+    .see-more-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .see-more-btn:hover {
+      background: rgba(128, 128, 128, 0.1);
+    }
+
+    .technical-details {
+      display: none;
+      margin-top: 16px;
+      padding: 16px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      text-align: left;
+      font-size: 12px;
+      color: #888888;
+      font-family: monospace;
+      word-break: break-all;
+    }
+
+    body.light .technical-details {
+      background: #f0f0f0;
+      color: #555555;
+    }
+
+    .technical-details.show {
+      display: block;
+    }
+
+    .technical-details p {
+      margin-bottom: 8px;
+    }
+
+    .technical-details span {
+      color: var(--accent);
+    }
+
+    .home-btn {
+      margin-top: 24px;
+      padding: 12px 30px;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .home-btn:hover {
+      background: var(--accent-dim);
+      transform: scale(1.02);
+    }
+
+    .proceed-btn {
+      margin-top: 12px;
+      padding: 12px 30px;
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .proceed-btn:hover {
+      background: var(--accent);
+      color: white;
+      transform: scale(1.02);
+    }
+
+    .tracker-warning {
+      display: none;
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: rgba(255, 107, 0, 0.1);
+      border: 1px solid rgba(255, 107, 0, 0.3);
+      border-radius: 8px;
+      font-size: 13px;
+      color: #999;
+    }
+
+    body.light .tracker-warning {
+      background: rgba(255, 107, 0, 0.05);
+      color: #666;
+    }
+
+    .tracker-warning.show {
+      display: block;
+    }
+
+    /* Hide blobs for emerald theme - show Matrix instead */
+    body.emerald .glow {
+      display: none;
+    }
+
+    /* Matrix rain canvas */
+    #matrix-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0;
+      filter: blur(0.5px);
+      transition: opacity 0.5s ease;
+    }
+
+    body.emerald #matrix-canvas {
+      opacity: 0.18;
+      filter: blur(0.5px);
+    }
+
+    /* CRT Effect for Emerald theme */
+    .crt-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body.emerald .crt-overlay {
+      display: block;
+    }
+
+    .crt-overlay::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+    }
+
+    .crt-overlay::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 0%,
+        transparent 50%,
+        rgba(0, 0, 0, 0.4) 100%
+      );
+      pointer-events: none;
+      animation: crt-flicker 0.1s infinite;
+    }
+
+    @keyframes crt-flicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.98; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrix-canvas"></canvas>
+  <div class="crt-overlay"></div>
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+  <div class="glow glow-3"></div>
+
+  <div class="error-container">
+    <img src="../assets/sahnap-cat.gif" alt="crying kitty" class="kitty">
+    <div class="message" id="message">ermm I can't load dat</div>
+    <div class="submessage" id="submessage">sowwy</div>
+    <div class="error-code" id="error-code"></div>
+    <button class="see-more-btn" id="see-more-btn">See more details</button>
+    <div class="technical-details" id="technical-details"></div>
+    <div class="tracker-warning" id="tracker-warning">
+      This site has lots of trackers that our ad blocker flagged. Proceeding will temporarily disable protection for this page.
+    </div>
+    <button class="home-btn" id="home-btn">Go Home</button>
+    <button class="proceed-btn" id="proceed-btn" style="display: none;">Proceed Anyway</button>
+  </div>
+
+  <script>
+    const allThemeClasses = ['light', 'blueberry', 'acai', 'emerald'];
+
+    // Matrix rain effect pasted from github ngl I wasn't gonna code this BY HAND like a psychopath
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    let matrixAnimationId = null;
+    let drops = [];
+    let active = [];
+
+    const fontSize = 14;
+    const trailLength = 20;
+    const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789'; // based af
+
+    function initMatrix() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const columnCount = Math.floor(canvas.width / fontSize);
+
+      // Preserve existing drops when possible, only adjust for size changes
+      const existingDrops = drops.length;
+      const newDrops = [];
+
+      // Keep existing drops that are still valid
+      for (let i = 0; i < drops.length; i++) {
+        const drop = drops[i];
+        // Check if this column is still within the new bounds
+        if (drop.x < canvas.width) {
+          newDrops.push(drop);
+        }
+      }
+
+      // Add new drops if we need more columns
+      for (let i = newDrops.length; i < columnCount; i++) {
+        if (i % 3 !== 0) continue;
+
+        newDrops.push({
+          x: i * fontSize,
+          y: Math.random() * -50,
+          speed: 0.3 + Math.random() * 0.4,
+          trail: []
+        });
+      }
+
+      drops = newDrops;
+    }
+
+    function getChar() {
+      return chars[Math.floor(Math.random() * chars.length)];
+    }
+
+    function drawMatrix() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = `${fontSize}px monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const drop = drops[i];
+        const y = Math.floor(drop.y) * fontSize;
+
+        drop.trail.push({ y: y, char: getChar() });
+
+        if (drop.trail.length > trailLength) {
+          drop.trail.shift();
+        }
+
+        for (let j = 0; j < drop.trail.length; j++) {
+          const t = drop.trail[j];
+          const opacity = (j + 1) / drop.trail.length;
+
+          if (j === drop.trail.length - 1) {
+            ctx.fillStyle = `rgba(200, 255, 200, ${opacity})`;
+          } else {
+            ctx.fillStyle = `rgba(34, 197, 94, ${opacity * 0.8})`;
+          }
+          ctx.fillText(t.char, drop.x, t.y);
+        }
+
+        drop.y += drop.speed;
+
+        if (drop.trail.length > 0 && drop.trail[0].y > canvas.height + fontSize) {
+          drop.y = Math.random() * -30;
+          drop.trail = [];
+        }
+      }
+
+      matrixAnimationId = requestAnimationFrame(drawMatrix);
+    }
+
+    function startMatrix() {
+      // Only reinitialize if matrix isn't running or canvas size changed
+      if (!matrixAnimationId) {
+        initMatrix();
+        drawMatrix();
+      } else {
+        // Check if canvas size changed
+        if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+          initMatrix();
+        }
+      }
+    }
+
+    function stopMatrix() {
+      if (matrixAnimationId) {
+        cancelAnimationFrame(matrixAnimationId);
+        matrixAnimationId = null;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    window.addEventListener('resize', () => {
+      if (document.body.classList.contains('emerald')) {
+        // Only reinitialize if the size actually changed
+        if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+          initMatrix();
+        }
+      }
+    });
+
+    function applyTheme(theme) {
+      allThemeClasses.forEach(cls => document.body.classList.remove(cls));
+      if (theme !== 'dark') {
+        document.body.classList.add(theme);
+      } else {
+        // For dark theme, ensure we have the right styling
+        document.body.classList.remove('light', 'blueberry', 'acai', 'emerald');
+      }
+
+      if (theme === 'emerald') {
+        startMatrix();
+      } else {
+        stopMatrix();
+      }
+
+      // Ensure proper background color
+      document.body.style.backgroundColor = theme === 'light' ? '#ffffff' : '#0d0d0d';
+    }
+
+    // Check for theme preference in localStorage
+    const savedTheme = localStorage.getItem('vitamin-theme');
+    if (savedTheme) {
+      applyTheme(savedTheme);
+    }
+
+    // Listen for theme changes from main process
+    if (window.chrome && window.chrome.ipcRenderer) {
+      window.chrome.ipcRenderer.on('theme-change', (event, theme) => {
+        applyTheme(theme);
+        localStorage.setItem('vitamin-theme', theme);
+      });
+    }
+
+    // Friendly error messages mapping - this was the mode fun shit to write LMAOOO
+    const errorMessages = {
+      '-105': {
+        title: "Dat website doesn't exist",
+        description: "Sowwy um we can't find dis place anywhereee idk"
+      },
+      '-106': {
+        title: "No internet wuz detected",
+        description: "Sowwy, ur not connected to da web right now!"
+      },
+      '-102': {
+        title: "Dey won't let us innn",
+        description: "Sowwy, da server haz rejected da request :("
+      },
+      '-118': {
+        title: "Took too long",
+        description: "Sowwy, dat website iz taking forever to respond ughh"
+      },
+      '-101': {
+        title: "Connection went poof",
+        description: "Sowwy, we got disconnected! Try again maybe?"
+      },
+      '-107': {
+        title: "Sumthin sketchy here",
+        description: "Sowwy, dis site haz security issues!"
+      },
+      '-202': {
+        title: "We don't trust dem",
+        description: "Sowwy, dat certificate looks kinda sus!"
+      },
+      '-200': {
+        title: "Certificate iz old",
+        description: "Sowwy, their security certificate haz expired!"
+      },
+      '-21': {
+        title: "Network went wobbly",
+        description: "Sowwy, ur connection changed while loading dat page!"
+      },
+      '-20': {
+        title: "Too many trackerz",
+        description: "Dis site haz so many trackers we blocked it for ur safety!"
+      },
+      '-7': {
+        title: "Can't reach dem",
+        description: "Sowwy, we couldn't connect to dat website!"
+      },
+      '-2': {
+        title: "Dat didn't work",
+        description: "Sowwy, sumthin went wrong with da request!"
+      },
+      '-324': {
+        title: "Dey sent us nothing",
+        description: "Sowwy, da website gave us an empty response!"
+      },
+      '-501': {
+        title: "Not secure enuff",
+        description: "Sowwy, dis site haz outdated security!"
+      }
+    };
+
+    // Parse error info from URL hash
+    function getErrorInfo() {
+      try {
+        const hash = window.location.hash.slice(1);
+        if (hash) {
+          return JSON.parse(decodeURIComponent(hash));
+        }
+      } catch (e) {
+        console.error('Failed to parse error info:', e);
+      }
+      return null;
+    }
+
+    // Apply theme when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('vitamin-theme') || 'dark';
+      applyTheme(savedTheme);
+    });
+
+    // Update the page with error details
+    const errorInfo = getErrorInfo();
+    const messageEl = document.getElementById('message');
+    const submessageEl = document.getElementById('submessage');
+    const errorCodeEl = document.getElementById('error-code');
+    const technicalEl = document.getElementById('technical-details');
+    const seeMoreBtn = document.getElementById('see-more-btn');
+
+    // Technical explanations for "see more" section, boring boring blah blah blah 
+    const technicalExplanations = {
+      '-105': "DNS lookup failed - the domain name could not be resolved to an IP address. This usually means the domain doesn't exist or DNS servers are unreachable.",
+      '-106': "No network connection detected. The device appears to be offline.",
+      '-102': "The remote server actively refused the connection. The server may be down, firewalled, or not accepting connections on this port.",
+      '-118': "The connection attempt timed out before the server responded. This could indicate server overload or network issues.",
+      '-101': "The connection was reset by the remote server or a network device. This often happens when the server closes the connection unexpectedly.",
+      '-107': "SSL/TLS protocol error. The secure connection could not be established due to a protocol mismatch or configuration issue.",
+      '-202': "The server's SSL certificate is signed by an untrusted certificate authority.",
+      '-200': "The server's SSL certificate has expired and is no longer valid.",
+      '-21': "The network configuration changed during the page load (e.g., switching from Wi-Fi to cellular).",
+      '-20': "The request was blocked by the browser, an extension, or content filtering.",
+      '-7': "A general connection failure occurred. The server may be unreachable.",
+      '-2': "A general network error occurred while processing the request.",
+      '-324': "The server accepted the connection but sent an empty response body.",
+      '-501': "The server's security configuration doesn't meet modern security standards."
+    };
+
+    const proceedBtn = document.getElementById('proceed-btn');
+    const trackerWarning = document.getElementById('tracker-warning');
+
+    if (errorInfo) {
+      const friendly = errorMessages[String(errorInfo.code)] || {
+        title: "Sumthin went wrong",
+        description: "Sowwy, we couldn't load dat page!"
+      };
+
+      messageEl.textContent = friendly.title;
+      submessageEl.textContent = friendly.description;
+      errorCodeEl.textContent = `Error ${errorInfo.code}`;
+
+      const techExplanation = technicalExplanations[String(errorInfo.code)] || 'An unexpected error occurred while loading the page.';
+
+      technicalEl.innerHTML = `
+        <p><span>Error Code:</span> ${errorInfo.code}</p>
+        <p><span>Raw Error:</span> ${errorInfo.description || 'Unknown'}</p>
+        <p><span>URL:</span> ${errorInfo.url || 'Unknown'}</p>
+        <p style="margin-top: 12px; color: #aaa;"><span>What this means:</span><br>${techExplanation}</p>
+      `;
+
+      // Show proceed button for blocked requests (error -20)
+      if (errorInfo.code === -20 && errorInfo.url) {
+        proceedBtn.style.display = 'inline-block';
+        trackerWarning.classList.add('show');
+
+        proceedBtn.addEventListener('click', () => {
+          // Send IPC to main process to proceed with blocking disabled
+          if (window.chrome && window.chrome.ipcRenderer) {
+            window.chrome.ipcRenderer.send('proceed-blocked-url', errorInfo.url);
+          } else {
+            // Fallback: just try to navigate (won't bypass blocking but worth a try)
+            window.location.href = errorInfo.url;
+          }
+        });
+      }
+    } else {
+      seeMoreBtn.style.display = 'none';
+      errorCodeEl.style.display = 'none';
+    }
+
+    // Toggle technical details (for the haxxors)
+    seeMoreBtn.addEventListener('click', () => {
+      technicalEl.classList.toggle('show');
+      seeMoreBtn.textContent = technicalEl.classList.contains('show')
+        ? 'Hide details'
+        : 'See more details';
+    });
+
+    // Go home button to the based af Vitamin hoome page oh yeah baby 
+    document.getElementById('home-btn').addEventListener('click', () => {
+      window.location.href = 'start.html';
+    });
+  </script>
+</body>
+</html>

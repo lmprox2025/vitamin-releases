@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome to Vitamin</title>
+  <script>
+    // Error fallback - catch any issues and display them
+    window.onerror = function(msg, url, line, col, error) {
+      document.body.innerHTML = '<div style="padding:40px;color:#ff6b00;font-family:monospace;">' +
+        '<h2>Oops! Something went wrong</h2>' +
+        '<p style="color:#888;">Error: ' + msg + '</p>' +
+        '<p style="color:#666;">at line ' + line + '</p>' +
+        '<button onclick="window.close()" style="margin-top:20px;padding:10px 20px;background:#ff6b00;border:none;color:#fff;border-radius:6px;cursor:pointer;">Close</button>' +
+        '</div>';
+      return true;
+    };
+    // Check if preload bridge is available
+    window.addEventListener('DOMContentLoaded', function() {
+      if (!window.vitamin) {
+        document.body.innerHTML = '<div style="padding:40px;color:#ff6b00;font-family:monospace;">' +
+          '<h2>Bridge not loaded</h2>' +
+          '<p style="color:#888;">The preload script failed to initialize.</p>' +
+          '<p style="color:#666;">This may be a packaging issue on Linux.</p>' +
+          '<button onclick="window.close()" style="margin-top:20px;padding:10px 20px;background:#ff6b00;border:none;color:#fff;border-radius:6px;cursor:pointer;">Close anyway</button>' +
+          '</div>';
+      }
+    });
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --accent: #ff6b00;
+      --accent-dim: #e55b00;
+      --accent-light: #ff8533;
+    }
+
+    body.blueberry { --accent: #4a90d9; --accent-dim: #3a7bc8; --accent-light: #6ba3e0; }
+    body.acai { --accent: #9b59b6; --accent-dim: #8e44ad; --accent-light: #af7ac5; }
+    body.emerald { --accent: #2ecc71; --accent-dim: #27ae60; --accent-light: #58d68d; }
+
+    body {
+      background: #0d0d0d;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Light mode */
+    body.light {
+      background: #ffffff;
+      color: #333333;
+    }
+
+    /* Animated glow effects */
+    .glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .glow-1 {
+      width: 600px;
+      height: 600px;
+      background: var(--accent);
+      top: -200px;
+      right: -100px;
+      animation: drift1 25s ease-in-out infinite;
+    }
+
+    .glow-2 {
+      width: 400px;
+      height: 400px;
+      background: var(--accent-light);
+      bottom: -150px;
+      left: -100px;
+      animation: drift2 30s ease-in-out infinite;
+    }
+
+    .glow-3 {
+      width: 300px;
+      height: 300px;
+      background: var(--accent);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.08;
+      animation: pulse 20s ease-in-out infinite;
+    }
+
+    /* Light mode glow effects */
+    body.light .glow-1 {
+      opacity: 0.4;
+    }
+
+    body.light .glow-2 {
+      opacity: 0.4;
+    }
+
+    body.light .glow-3 {
+      opacity: 0.3;
+    }
+
+    @keyframes drift1 {
+      0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.15; }
+      25% { transform: translate(-80px, 60px) scale(1.1); opacity: 0.12; }
+      50% { transform: translate(-40px, 100px) scale(0.95); opacity: 0.18; }
+      75% { transform: translate(40px, 40px) scale(1.05); opacity: 0.13; }
+    }
+
+    @keyframes drift2 {
+      0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.15; }
+      33% { transform: translate(100px, -60px) scale(1.15); opacity: 0.12; }
+      66% { transform: translate(50px, -100px) scale(0.9); opacity: 0.17; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.08; }
+      50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.05; }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 560px;
+      padding: 40px;
+      text-align: center;
+    }
+    .icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 24px;
+      color: var(--accent);
+    }
+    .icon svg {
+      width: 100%;
+      height: 100%;
+    }
+    .title { font-size: 28px; font-weight: 700; margin-bottom: 20px; }
+    .body { font-size: 15px; line-height: 1.7; color: #888; margin-bottom: 32px; }
+    body.light .body { color: #666; }
+    .body .highlight { color: var(--accent); font-weight: 600; }
+    .body .white { color: #fff; font-weight: 700; }
+    body.light .body .white { color: #333; }
+    .toolkit {
+      text-align: left;
+      background: #141414;
+      border: 1px solid #252525;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    body.light .toolkit {
+      background: #f5f5f5;
+      border-color: #d0d0d0;
+    }
+    .toolkit-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #252525;
+    }
+    body.light .toolkit-item {
+      border-bottom-color: #d0d0d0;
+    }
+    .toolkit-item:last-child { border-bottom: none; }
+    .toolkit-item svg {
+      width: 18px;
+      height: 18px;
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .next-btn {
+      padding: 14px 32px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+    }
+    .next-btn:hover { background: var(--accent-dim); transform: scale(1.02); }
+    .skip-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 8px 16px;
+      border: 1px solid #252525;
+      border-radius: 6px;
+      background: transparent;
+      color: #555;
+      font-size: 12px;
+      cursor: pointer;
+      z-index: 10;
+    }
+    body.light .skip-btn {
+      border-color: #d0d0d0;
+      color: #888;
+    }
+    .skip-btn:hover { color: #888; border-color: #333; }
+    body.light .skip-btn:hover { color: #555; border-color: #999; }
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 32px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #252525;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    body.light .dot {
+      background: #d0d0d0;
+    }
+    .dot.active {
+      width: 24px;
+      border-radius: 4px;
+      background: var(--accent);
+    }
+    .slide { display: none; }
+    .slide.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+  <div class="glow glow-3"></div>
+
+  <button class="skip-btn" onclick="finish()">Skip</button>
+
+  <div class="container">
+    <!-- Slide 1: Welcome -->
+    <div class="slide active" data-slide="0">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+      </div>
+      <h1 class="title">Welcome to Vitamin</h1>
+      <div class="body">
+        You just made a choice most people never will.<br><br>
+        While billions scroll through the internet leaving digital footprints everywhere they go, you decided to take control.<br><br>
+        Welcome to Vitamin.
+      </div>
+      <button class="next-btn" onclick="nextSlide()">Let's begin</button>
+    </div>
+
+    <!-- Slide 2: Watching -->
+    <div class="slide" data-slide="1">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <h1 class="title">They're watching everything</h1>
+      <div class="body">
+        Every search. Every click. Every hover.<br><br>
+        Traditional browsers try to <span class="highlight">block</span> trackers. But here's the truth: blocking only works until it doesn't. Advertisers adapt. Trackers evolve.<br><br>
+        Brave blocks. Firefox blocks. LibreWolf blocks.<br><br>
+        But Vitamin? Vitamin <span class="highlight">supplements</span>.
+      </div>
+      <button class="next-btn" onclick="nextSlide()">Tell me more</button>
+    </div>
+
+    <!-- Slide 3: Chaos -->
+    <div class="slide" data-slide="2">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <h1 class="title">Fighting back with chaos</h1>
+      <div class="body">
+        Instead of hiding, Vitamin floods trackers with fake data. Fake searches. Fake interests. Fake behavior patterns.<br><br>
+        You become invisible not by disappearing—but by becoming <span class="highlight">everyone</span>.<br><br>
+        Your real data drowns in a sea of noise. That's not just privacy. That's power.
+      </div>
+      <button class="next-btn" onclick="nextSlide()">Show me how</button>
+    </div>
+
+    <!-- Slide 4: Toolkit -->
+    <div class="slide" data-slide="3">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+        </svg>
+      </div>
+      <h1 class="title">Your toolkit</h1>
+      <div class="body">
+        <div class="toolkit">
+          <div class="toolkit-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
+            </svg>
+            <span><span class="highlight">Supplement Button</span> — Toggle data supplementing on/off. When it glows, you're protected.</span>
+          </div>
+          <div class="toolkit-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span><span class="highlight">Settings</span> — Choose your persona, manage tiers, and customize your experience.</span>
+          </div>
+          <div class="toolkit-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/>
+            </svg>
+            <span><span class="highlight">Side Panels</span> — Access bookmarks, downloads, history, and cookies with one click.</span>
+          </div>
+        </div>
+      </div>
+      <button class="next-btn" onclick="nextSlide()">What else?</button>
+    </div>
+
+    <!-- Slide 5: Shredding -->
+    <div class="slide" data-slide="4">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          <line x1="10" y1="11" x2="10" y2="17"/>
+          <line x1="14" y1="11" x2="14" y2="17"/>
+        </svg>
+      </div>
+      <h1 class="title">Shred, don't delete</h1>
+      <div class="body">
+        Other browsers "clear" your history and cookies. But clearing isn't deleting—it's <span class="highlight">hiding</span>.<br><br>
+        Forensic tools can recover "deleted" browser data. Your history isn't gone—it's just marked as reusable space.<br><br>
+        Vitamin <span class="highlight">shreds</span>. We overwrite your data with random noise before deletion. No recovery. No traces. Gone forever.
+      </div>
+      <button class="next-btn" onclick="nextSlide()">Almost done</button>
+    </div>
+
+    <!-- Slide 6: Personas -->
+    <div class="slide" data-slide="5">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <h1 class="title">Become anyone</h1>
+      <div class="body">
+        Vitamin doesn't just add noise—it creates <span class="highlight">characters</span>.<br><br>
+        Each persona has its own interests, search patterns, and browsing behavior. You could be a tech enthusiast one moment, a gardening hobbyist the next.<br><br>
+        The more unpredictable you are, the less valuable your data becomes.
+      </div>
+      <button class="next-btn" onclick="nextSlide()">Next</button>
+    </div>
+
+    <!-- Slide 7: Support -->
+    <div class="slide" data-slide="6">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </div>
+      <h1 class="title">Keep Vitamin alive</h1>
+      <div class="body">
+        Vitamin is <span class="highlight">free and open source</span>—no subscriptions, no data harvesting, no corporate interests.<br><br>
+        But fighting surveillance capitalism isn't free. If Vitamin has helped protect your privacy, consider supporting the project.<br><br>
+        You'll find a Bitcoin address in <span class="highlight">Settings</span>. Every contribution helps keep Vitamin independent in the fight against Big Brother.
+      </div>
+      <button class="next-btn" onclick="nextSlide()">Get started</button>
+    </div>
+
+    <!-- Slide 8: Ready -->
+    <div class="slide" data-slide="7">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+      </div>
+      <h1 class="title">You're ready</h1>
+      <div class="body">
+        The internet was built to track you.<br><br>
+        Vitamin was built to make that impossible.<br><br>
+        <span class="white">Supplement your search.</span>
+      </div>
+      <button class="next-btn" onclick="finish()">Start browsing</button>
+    </div>
+
+    <!-- Dots -->
+    <div class="dots">
+      <div class="dot active" onclick="goToSlide(0)"></div>
+      <div class="dot" onclick="goToSlide(1)"></div>
+      <div class="dot" onclick="goToSlide(2)"></div>
+      <div class="dot" onclick="goToSlide(3)"></div>
+      <div class="dot" onclick="goToSlide(4)"></div>
+      <div class="dot" onclick="goToSlide(5)"></div>
+      <div class="dot" onclick="goToSlide(6)"></div>
+      <div class="dot" onclick="goToSlide(7)"></div>
+    </div>
+  </div>
+
+  <script>
+    const allThemeClasses = ['light', 'blueberry', 'acai', 'emerald'];
+
+    function applyTheme(theme) {
+      allThemeClasses.forEach(cls => document.body.classList.remove(cls));
+      if (theme !== 'dark') {
+        document.body.classList.add(theme);
+      } else {
+        // For dark theme, ensure we have the right styling
+        document.body.classList.remove('light', 'blueberry', 'acai', 'emerald');
+      }
+    }
+
+    // Check for theme preference in localStorage
+    const savedTheme = localStorage.getItem('vitamin-theme');
+    if (savedTheme) {
+      applyTheme(savedTheme);
+    }
+
+    let currentSlide = 0;
+    const totalSlides = 8;
+
+    function updateSlides() {
+      document.querySelectorAll('.slide').forEach((slide, i) => {
+        slide.classList.toggle('active', i === currentSlide);
+      });
+      document.querySelectorAll('.dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentSlide);
+      });
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        currentSlide++;
+        updateSlides();
+      }
+    }
+
+    function goToSlide(index) {
+      currentSlide = index;
+      updateSlides();
+    }
+
+    function finish() {
+      // Notify main process that onboarding is complete
+      window.vitamin.completeOnboarding();
+
+      // Close the window
+      window.close();
+    }
+  </script>
+</body>
+</html>

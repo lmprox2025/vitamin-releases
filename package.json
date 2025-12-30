@@ -1,0 +1,161 @@
+{
+  "name": "vitamin-browser",
+  "version": "0.5.0",
+  "description": "A privacy-first browser that poisons tracking data to protect you",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder --mac --linux --win",
+    "build:mac": "electron-builder --mac dmg",
+    "build:linux": "electron-builder --linux deb",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder --mac dmg --linux deb --win",
+    "protect": "node scripts/obfuscate.js build",
+    "restore": "node scripts/obfuscate.js restore",
+    "build:protected": "npm run protect && npm run build:all && npm run restore"
+  },
+  "keywords": [
+    "privacy",
+    "browser",
+    "tracking",
+    "protection",
+    "security"
+  ],
+  "author": {
+    "name": "Vitali",
+    "email": "hello@vitalinux.com"
+  },
+  "license": "GPL-3.0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/realvitali/vitamin-browser.git"
+  },
+  "devDependencies": {
+    "bytenode": "^1.5.7",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "javascript-obfuscator": "^5.1.0"
+  },
+  "build": {
+    "appId": "com.vitali.vitamin",
+    "productName": "Vitamin",
+    "publish": {
+      "provider": "github",
+      "owner": "realvitali",
+      "repo": "vitamin-releases"
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "icon": "assets/icon.icns",
+      "target": [
+        "dmg"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm",
+        "pacman",
+        "flatpak"
+      ],
+      "category": "Network",
+      "icon": "build/icons"
+    },
+    "pacman": {
+      "compression": "xz"
+    },
+    "flatpak": {
+      "runtime": "org.freedesktop.Platform",
+      "runtimeVersion": "23.08",
+      "sdk": "org.freedesktop.Sdk",
+      "base": "org.electronjs.Electron2.BaseApp",
+      "baseVersion": "23.08"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Vitamin"
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libgbm1",
+        "libasound2",
+        "libdrm2",
+        "libxshmfence1",
+        "libglu1-mesa",
+        "libxkbcommon0",
+        "libxrandr2"
+      ]
+    },
+    "dmg": {
+      "background": "assets/dmg-background.png",
+      "iconSize": 80,
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 150,
+          "y": 150
+        },
+        {
+          "x": 390,
+          "y": 150,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/@electron/remote/**/*",
+      "preload.js"
+    ],
+    "files": [
+      "main.js",
+      "preload.js",
+      "preload-start.js",
+      "adblock.js",
+      "bookmarks.js",
+      "history.js",
+      "fingerprint-protection.js",
+      "poisonData.js",
+      "html/**/*",
+      "assets/**/*"
+    ]
+  },
+  "dependencies": {
+    "@electron/remote": "^2.1.3",
+    "@ghostery/adblocker-electron": "^2.13.1",
+    "cross-fetch": "^4.1.0",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.6.2"
+  }
+}

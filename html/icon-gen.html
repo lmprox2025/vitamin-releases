@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; }
+    body {
+      width: 1024px;
+      height: 1024px;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-wrapper {
+      width: 894px;
+      height: 894px;
+      background: linear-gradient(145deg, #1a1a1a 0%, #0a0a0a 100%);
+      border-radius: 185px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .glow {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      background: #ff6b00;
+      border-radius: 50%;
+      filter: blur(150px);
+      opacity: 0.2;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .logo {
+      width: 550px;
+      height: 550px;
+      object-fit: contain;
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="icon-wrapper">
+    <div class="glow"></div>
+    <img class="logo" src="../assets/icon.png" />
+  </div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.env
+*.env
+.env.*
+out/
+build/
+archived-releases/
+.source-backup/
+*.dmg
+*.deb
+*.exe
