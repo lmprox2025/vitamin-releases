@@ -657,12 +657,33 @@
 
       const techExplanation = technicalExplanations[String(errorInfo.code)] || 'An unexpected error occurred while loading the page.';
 
-      technicalEl.innerHTML = `
-        <p><span>Error Code:</span> ${errorInfo.code}</p>
-        <p><span>Raw Error:</span> ${errorInfo.description || 'Unknown'}</p>
-        <p><span>URL:</span> ${errorInfo.url || 'Unknown'}</p>
-        <p style="margin-top: 12px; color: #aaa;"><span>What this means:</span><br>${techExplanation}</p>
-      `;
+      // Build technical details safely
+      while (technicalEl.firstChild) technicalEl.removeChild(technicalEl.firstChild);
+
+      const rows = [
+        { label: 'Error Code', value: String(errorInfo.code) },
+        { label: 'Raw Error', value: errorInfo.description || 'Unknown' },
+        { label: 'URL', value: errorInfo.url || 'Unknown' }
+      ];
+
+      rows.forEach(row => {
+        const p = document.createElement('p');
+        const span = document.createElement('span');
+        span.textContent = `${row.label}:`;
+        p.appendChild(span);
+        p.appendChild(document.createTextNode(` ${row.value}`));
+        technicalEl.appendChild(p);
+      });
+
+      const explanation = document.createElement('p');
+      explanation.style.marginTop = '12px';
+      explanation.style.color = '#aaa';
+      const explanationLabel = document.createElement('span');
+      explanationLabel.textContent = 'What this means:';
+      explanation.appendChild(explanationLabel);
+      explanation.appendChild(document.createElement('br'));
+      explanation.appendChild(document.createTextNode(techExplanation));
+      technicalEl.appendChild(explanation);
 
       // Show proceed button for blocked requests (error -20)
       if (errorInfo.code === -20 && errorInfo.url) {

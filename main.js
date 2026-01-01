@@ -18,6 +18,23 @@ try {
   console.error('Failed to load fingerprint protection script:', e.message);
 }
 
+let fingerprintPreloadId = null;
+
+function registerFingerprintPreloadScript() {
+  if (fingerprintPreloadId) return;
+  const ses = session.defaultSession;
+  if (!ses || typeof ses.registerPreloadScript !== 'function') return;
+  const preloadPath = path.join(__dirname, 'preload-fingerprint.js');
+  try {
+    fingerprintPreloadId = ses.registerPreloadScript({
+      type: 'frame',
+      filePath: preloadPath
+    });
+  } catch (err) {
+    console.error('Failed to register fingerprint preload script:', err.message);
+  }
+}
+
 // Linux GPU and display compatibility
 // These must be set before app is ready
 if (process.platform === 'linux') {
@@ -39,19 +56,27 @@ if (process.platform === 'linux') {
   app.commandLine.appendSwitch('disable-software-rasterizer');
 }
 
+// Reduce exposed client hints
+app.commandLine.appendSwitch('disable-features', 'UserAgentClientHint');
+app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled');
+app.commandLine.appendSwitch('disable-3d-apis');
+
 // Check if running in a restricted environment (unprivileged userns disabled)
 // Some distros like Debian/Ubuntu with hardened kernels need --no-sandbox
 try {
   const { execSync } = require('child_process');
   const result = execSync('cat /proc/sys/kernel/unprivileged_userns_clone 2>/dev/null || echo 1', { encoding: 'utf8' });
   if (result.trim() === '0') {
-    // Unprivileged user namespaces disabled - sandbox won't work
-    app.commandLine.appendSwitch('no-sandbox');
-    console.log('Sandbox disabled: unprivileged_userns_clone is 0');
+    // Unprivileged user namespaces disabled - sandbox might not work
+    if (process.env.VITAMIN_DISABLE_SANDBOX === '1') {
+      app.commandLine.appendSwitch('no-sandbox');
+      console.log('Sandbox disabled via VITAMIN_DISABLE_SANDBOX=1');
+    } else {
+      console.warn('Sandbox may be unavailable: unprivileged_userns_clone is 0');
+    }
   }
 } catch (e) {
-  // If we can't check, try without sandbox as fallback
-  // This is safer than crashing on startup
+  // If we can't check, keep sandbox on by default
 }
 
 // Check if in development mode
@@ -73,6 +98,18 @@ if (!isDev) {
 
 // Set app name (removes Electron branding)
 app.setName('Vitamin');
+
+// Ensure userData resolves to an app-specific directory (fixes NixOS appData edge case)
+const appDataPath = app.getPath('appData');
+const expectedUserDataPath = path.join(appDataPath, app.getName());
+try {
+  const userDataPath = app.getPath('userData');
+  if (path.resolve(userDataPath) === path.resolve(appDataPath)) {
+    app.setPath('userData', expectedUserDataPath);
+  }
+} catch (err) {
+  app.setPath('userData', expectedUserDataPath);
+}
 
 // Storage paths
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
@@ -111,6 +148,23 @@ function isSafeExternalUrl(url) {
   } catch (err) {
     return false;
   }
+}
+
+function normalizeNavigationInput(input) {
+  if (typeof input !== 'string') return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return isSafeExternalUrl(trimmed) ? trimmed : null;
+  }
+
+  if (trimmed.includes('.') && !/\s/.test(trimmed)) {
+    const candidate = `https://${trimmed}`;
+    return isSafeExternalUrl(candidate) ? candidate : null;
+  }
+
+  return `https://duckduckgo.com/?q=${encodeURIComponent(trimmed)}`;
 }
 
 // Get performance metrics
@@ -166,12 +220,19 @@ function getPerformanceMetrics() {
   };
 }
 
+const ALLOWED_THEMES = new Set(['dark', 'light', 'blueberry', 'acai', 'emerald']);
+
+function normalizeTheme(theme) {
+  return ALLOWED_THEMES.has(theme) ? theme : 'dark';
+}
+
 // Default settings
 let settings = {
   frequency: 'medium',
   persona: null,
   theme: 'dark',
   adBlockEnabled: true,
+  aggressiveAdBlock: true,
   autoUpdate: true,
   restoreSession: true,
   lastSeenVersion: null,
@@ -180,6 +241,8 @@ let settings = {
   httpsOnly: false,
   blockWebRTC: true,
   blockFingerprinting: true,
+  blockFingerprintTests: true,
+  blockPopups: true,
   clearOnExit: false,
   // Performance settings
   performanceMode: false
@@ -187,11 +250,13 @@ let settings = {
 
 // Generate theme injection script
 function getThemeInjectionScript(theme) {
+  const safeTheme = JSON.stringify(normalizeTheme(theme));
   return `
     try {
-      localStorage.setItem('vitamin-theme', '${theme}');
+      const theme = ${safeTheme};
+      localStorage.setItem('vitamin-theme', theme);
       if (typeof applyTheme === 'function') {
-        applyTheme('${theme}');
+        applyTheme(theme);
       }
     } catch (err) {
       console.error('Failed to apply theme:', err);
@@ -337,7 +402,11 @@ function showOnboardingWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      sandbox: true,
+      webSecurity: true,
+      enableRemoteModule: false,
+      spellcheck: false
     },
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     frame: process.platform !== 'darwin',
@@ -400,6 +469,7 @@ function loadSettings() {
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf8');
       settings = { ...settings, ...JSON.parse(data) };
+      settings.theme = normalizeTheme(settings.theme);
     }
   } catch (err) {
     console.error('Failed to load settings:', err);
@@ -515,7 +585,7 @@ function applyPrivacySettings() {
     });
   }
 
-  // HTTPS upgrading handler
+  // HTTPS upgrading + adblock handler
   // Note: Palantir blocking is handled at the webContents level (will-navigate, createTab, navigate IPC)
   ses.webRequest.onBeforeRequest((details, callback) => {
     // HTTPS upgrading - only if enabled and for http:// URLs
@@ -532,7 +602,18 @@ function applyPrivacySettings() {
       return;
     }
 
+    if (adblockModule.handleBeforeRequest(details, callback)) {
+      return;
+    }
+
     callback({ cancel: false });
+  });
+
+  ses.webRequest.onHeadersReceived((details, callback) => {
+    if (adblockModule.handleHeadersReceived(details, callback)) {
+      return;
+    }
+    callback({ responseHeaders: details.responseHeaders });
   });
 
   // Log failed requests for debugging
@@ -549,13 +630,29 @@ function applyPrivacySettings() {
   }
 
   // Set secure defaults
-  ses.setUserAgent(ses.getUserAgent().replace(/Electron\/[\d.]+\s*/, ''));
+  const normalizedUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  const chromeMajorMatch = normalizedUserAgent.match(/Chrome\/(\d+)\./);
+  const chromeMajor = chromeMajorMatch ? chromeMajorMatch[1] : '120';
+  const secChUa = `"Not=A?Brand";v="24", "Chromium";v="${chromeMajor}", "Google Chrome";v="${chromeMajor}"`;
+  ses.setUserAgent(normalizedUserAgent);
 
   // Set consistent preferences to avoid dark mode conflicts
   ses.webRequest.onBeforeSendHeaders((details, callback) => {
     // Force light mode preference for websites to prevent dark mode rendering issues
-    details.requestHeaders['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8';
+    details.requestHeaders['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7';
+    details.requestHeaders['Accept-Language'] = 'en-US,en;q=0.9';
+    details.requestHeaders['Accept-Encoding'] = 'gzip, deflate, br';
+    details.requestHeaders['DNT'] = '1';
+    details.requestHeaders['Sec-GPC'] = '1';
     details.requestHeaders['Sec-CH-Prefers-Color-Scheme'] = 'light';
+    Object.keys(details.requestHeaders).forEach((header) => {
+      if (header.toLowerCase().startsWith('sec-ch-ua')) {
+        delete details.requestHeaders[header];
+      }
+    });
+    details.requestHeaders['Sec-CH-UA'] = secChUa;
+    details.requestHeaders['Sec-CH-UA-Mobile'] = '?0';
+    details.requestHeaders['Sec-CH-UA-Platform'] = '"Windows"';
     callback({ requestHeaders: details.requestHeaders });
   });
 
@@ -609,7 +706,11 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      enableRemoteModule: false,
+      spellcheck: false
     },
     // macOS: hidden title bar with traffic lights
     // Linux/Windows: frameless with custom window controls
@@ -630,13 +731,6 @@ function createWindow() {
   mainWindow.webContents.once('dom-ready', () => {
     if (!mainWindow.isDestroyed()) {
       mainWindow.show();
-
-      // Initialize ad blocker in background after window is shown
-      setTimeout(() => {
-        adblockModule.init().catch(err => {
-          console.error('Failed to initialize ad blocker in background:', err.message);
-        });
-      }, 100);
     }
   });
 
@@ -790,6 +884,47 @@ function updateActiveTabBounds() {
   });
 }
 
+const fingerprintInjectedContents = new WeakSet();
+
+function registerFingerprintProtection(webContents) {
+  if (!settings.blockFingerprinting || !fingerprintProtectionScript) return;
+  if (!webContents || webContents.isDestroyed()) return;
+  if (fingerprintInjectedContents.has(webContents)) return;
+
+  let injected = false;
+  if (typeof webContents.addScriptToEvaluateOnNewDocument === 'function') {
+    try {
+      webContents.addScriptToEvaluateOnNewDocument(fingerprintProtectionScript);
+      injected = true;
+    } catch (err) {
+      console.error('Failed to register fingerprint protection:', err.message);
+    }
+  }
+
+  if (!injected && webContents.debugger) {
+    try {
+      if (!webContents.debugger.isAttached()) {
+        webContents.debugger.attach('1.3');
+      }
+      void webContents.debugger.sendCommand('Page.enable').catch((err) => {
+        console.error('Failed to enable Page domain for fingerprint protection:', err.message);
+      });
+      void webContents.debugger.sendCommand('Page.addScriptToEvaluateOnNewDocument', {
+        source: fingerprintProtectionScript
+      }).catch((err) => {
+        console.error('Failed to add fingerprint script via debugger:', err.message);
+      });
+      injected = true;
+    } catch (err) {
+      console.error('Failed to register fingerprint protection via debugger:', err.message);
+    }
+  }
+
+  if (injected) {
+    fingerprintInjectedContents.add(webContents);
+  }
+}
+
 function createTab(url = null) {
   const tabId = nextTabId++;
   const view = new BrowserView({
@@ -797,6 +932,10 @@ function createTab(url = null) {
       preload: path.join(__dirname, 'preload-start.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
+      enableRemoteModule: false,
+      spellcheck: false,
       session: session.defaultSession  // Ensure we use the default session where request handlers are registered
     },
     backgroundColor: '#0a0a0a'
@@ -811,6 +950,37 @@ function createTab(url = null) {
   };
   tabs.push(tab);
   tabViews.set(tabId, view);
+
+  registerFingerprintProtection(view.webContents);
+
+  view.webContents.setWindowOpenHandler((details) => {
+    if (!settings.adBlockEnabled || !settings.blockPopups) {
+      return { action: 'allow' };
+    }
+
+    const targetUrl = details.url || '';
+    if (!isSafeExternalUrl(targetUrl)) {
+      console.log('[POPUP] Blocked unsafe popup:', targetUrl);
+      return { action: 'deny' };
+    }
+
+    let sameOrigin = false;
+    try {
+      const sourceUrl = view.webContents.getURL();
+      sameOrigin = new URL(sourceUrl).origin === new URL(targetUrl).origin;
+    } catch (err) {
+      sameOrigin = false;
+    }
+
+    if (details.userGesture && sameOrigin) {
+      console.log('[POPUP] Redirecting popup to current tab:', targetUrl);
+      view.webContents.loadURL(targetUrl);
+      return { action: 'deny' };
+    }
+
+    console.log('[POPUP] Blocked popup:', targetUrl);
+    return { action: 'deny' };
+  });
 
   // Apply performance mode if enabled
   if (settings.performanceMode) {
@@ -1069,6 +1239,11 @@ function createTab(url = null) {
 
   // Load URL or start page
   if (url) {
+    const normalizedUrl = normalizeNavigationInput(url);
+    url = normalizedUrl || null;
+  }
+
+  if (url) {
     // Set background color immediately to prevent flash
     view.setBackgroundColor('#0a0a0a');
 
@@ -1078,38 +1253,46 @@ function createTab(url = null) {
       const palantirInfo = encodeURIComponent(JSON.stringify({ url: url }));
       view.webContents.loadFile('html/palantir.html', { hash: palantirInfo });
     } else {
-      view.webContents.loadURL(url);
+      ensureAdblockReadyForUrl(url).finally(() => {
+        if (!view.webContents.isDestroyed()) {
+          view.webContents.loadURL(url);
+        }
+      });
     }
   } else {
     view.webContents.loadFile('html/start.html');
 
     // Send theme and version to start page when it's loaded
     view.webContents.once('dom-ready', () => {
-      const theme = settings.theme;
+      const theme = normalizeTheme(settings.theme);
       const version = app.getVersion();
+      const safeTheme = JSON.stringify(theme);
+      const safeVersion = JSON.stringify(version);
       view.webContents.send('theme-change', theme);
       // Also directly apply theme and version via JavaScript to ensure it's applied
       view.webContents.executeJavaScript(`
         try {
+          const theme = ${safeTheme};
+          const version = ${safeVersion};
           const allThemeClasses = ['light', 'blueberry', 'acai', 'emerald'];
           allThemeClasses.forEach(cls => document.body.classList.remove(cls));
-          if ('${theme}' !== 'dark') {
-            document.body.classList.add('${theme}');
+          if (theme !== 'dark') {
+            document.body.classList.add(theme);
           } else {
             // For dark theme, ensure we have the right styling
             document.body.classList.remove('light', 'blueberry', 'acai', 'emerald');
           }
-          localStorage.setItem('vitamin-theme', '${theme}');
+          localStorage.setItem('vitamin-theme', theme);
           // Set version
           const versionEl = document.getElementById('app-version');
-          if (versionEl) versionEl.textContent = 'v${version}';
+          if (versionEl) versionEl.textContent = 'v' + version;
 
           // Ensure proper background color
-          document.body.style.backgroundColor = '${theme}' === 'light' ? '#ffffff' : '#0a0a0a';
+          document.body.style.backgroundColor = theme === 'light' ? '#ffffff' : '#0a0a0a';
 
           // Apply theme if applyTheme function exists
           if (typeof applyTheme === 'function') {
-            applyTheme('${theme}');
+            applyTheme(theme);
           }
         } catch (err) {
           console.error('Failed to apply initial theme:', err);
@@ -1153,18 +1336,21 @@ function switchToTab(tabId) {
 
     // Only modify internal pages - don't touch external websites
     if (isInternalPage) {
+      const theme = normalizeTheme(settings.theme);
+      const safeTheme = JSON.stringify(theme);
       view.setBackgroundColor('#0a0a0a');
-      view.webContents.send('theme-change', settings.theme);
+      view.webContents.send('theme-change', theme);
       view.webContents.executeJavaScript(`
         try {
+          const theme = ${safeTheme};
           const allThemeClasses = ['light', 'blueberry', 'acai', 'emerald'];
           allThemeClasses.forEach(cls => document.body.classList.remove(cls));
-          if ('${settings.theme}' !== 'dark') {
-            document.body.classList.add('${settings.theme}');
+          if (theme !== 'dark') {
+            document.body.classList.add(theme);
           }
-          localStorage.setItem('vitamin-theme', '${settings.theme}');
+          localStorage.setItem('vitamin-theme', theme);
           if (typeof applyTheme === 'function') {
-            applyTheme('${settings.theme}');
+            applyTheme(theme);
           }
         } catch (err) {
           console.error('Failed to apply theme on tab switch:', err);
@@ -1191,30 +1377,34 @@ function closeTab(tabId) {
       sendTabsUpdate();
       // Apply theme and version after page loads
       view.webContents.once('dom-ready', () => {
-        const theme = settings.theme;
+        const theme = normalizeTheme(settings.theme);
         const version = app.getVersion();
+        const safeTheme = JSON.stringify(theme);
+        const safeVersion = JSON.stringify(version);
         view.webContents.send('theme-change', theme);
         view.webContents.executeJavaScript(`
           try {
+            const theme = ${safeTheme};
+            const version = ${safeVersion};
             const allThemeClasses = ['light', 'blueberry', 'acai', 'emerald'];
             allThemeClasses.forEach(cls => document.body.classList.remove(cls));
-            if ('${theme}' !== 'dark') {
-              document.body.classList.add('${theme}');
+            if (theme !== 'dark') {
+              document.body.classList.add(theme);
             } else {
               // For dark theme, ensure we have the right styling
               document.body.classList.remove('light', 'blueberry', 'acai', 'emerald');
             }
-            localStorage.setItem('vitamin-theme', '${theme}');
+            localStorage.setItem('vitamin-theme', theme);
             // Set version
             const versionEl = document.getElementById('app-version');
-            if (versionEl) versionEl.textContent = 'v${version}';
+            if (versionEl) versionEl.textContent = 'v' + version;
 
             // Ensure proper background color
-            document.body.style.backgroundColor = '${theme}' === 'light' ? '#ffffff' : '#0a0a0a';
+            document.body.style.backgroundColor = theme === 'light' ? '#ffffff' : '#0a0a0a';
 
             // Apply theme if applyTheme function exists
             if (typeof applyTheme === 'function') {
-              applyTheme('${theme}');
+              applyTheme(theme);
             }
           } catch (err) {
             console.error('Failed to apply theme on reset:', err);
@@ -1274,19 +1464,24 @@ function getActiveView() {
   return tabViews.get(activeTabId);
 }
 
+async function ensureAdblockReadyForUrl(url) {
+  if (!settings.adBlockEnabled) return;
+  if (!isSafeExternalUrl(url)) return;
+  try {
+    await adblockModule.waitUntilReady();
+  } catch (err) {
+    console.error('Ad blocker readiness check failed:', err.message);
+  }
+}
+
 // Navigation handlers
-ipcMain.on('navigate', (event, url) => {
+ipcMain.on('navigate', async (event, url) => {
+  if (denyIfUntrusted(event, 'navigate')) return;
   const view = getActiveView();
   if (!view) return;
 
-  let finalUrl = url;
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    if (url.includes('.') && !url.includes(' ')) {
-      finalUrl = 'https://' + url;
-    } else {
-      finalUrl = 'https://duckduckgo.com/?q=' + encodeURIComponent(url);
-    }
-  }
+  const finalUrl = normalizeNavigationInput(url);
+  if (!finalUrl) return;
 
   // Check for Palantir URLs and show fun error page instead
   if (finalUrl.includes('palantir.com')) {
@@ -1296,6 +1491,7 @@ ipcMain.on('navigate', (event, url) => {
     return;
   }
 
+  await ensureAdblockReadyForUrl(finalUrl);
   view.webContents.loadURL(finalUrl);
 });
 
@@ -1328,7 +1524,11 @@ ipcMain.on('search-request', (event, query) => {
     if (view) {
       // Set background color immediately to prevent flash
       view.setBackgroundColor('#0a0a0a');
-      view.webContents.loadURL(searchUrl);
+      ensureAdblockReadyForUrl(searchUrl).finally(() => {
+        if (!view.webContents.isDestroyed()) {
+          view.webContents.loadURL(searchUrl);
+        }
+      });
     }
   }
 });
@@ -1338,6 +1538,7 @@ ipcMain.on('proceed-palantir-url', (event, url) => {
   if (denyIfUntrusted(event, 'proceed-palantir-url')) return;
   const view = getActiveView();
   if (!view || !url) return;
+  if (!isSafeExternalUrl(url)) return;
 
   console.log('Proceeding to Palantir URL without filtering:', url);
 
@@ -1350,6 +1551,7 @@ ipcMain.on('proceed-blocked-url', (event, url) => {
   if (denyIfUntrusted(event, 'proceed-blocked-url')) return;
   const view = getActiveView();
   if (!view || !url) return;
+  if (!isSafeExternalUrl(url)) return;
 
   console.log('Proceeding to blocked URL with all blocking temporarily disabled:', url);
 
@@ -1409,24 +1611,28 @@ ipcMain.on('refresh', () => {
       const isInternalPage = currentUrl.startsWith('file://');
 
       if (isInternalPage) {
-        const theme = settings.theme;
+        const theme = normalizeTheme(settings.theme);
         const version = app.getVersion();
+        const safeTheme = JSON.stringify(theme);
+        const safeVersion = JSON.stringify(version);
         view.webContents.send('theme-change', theme);
         view.webContents.executeJavaScript(`
           try {
+            const theme = ${safeTheme};
+            const version = ${safeVersion};
             const allThemeClasses = ['light', 'blueberry', 'acai', 'emerald'];
             allThemeClasses.forEach(cls => document.body.classList.remove(cls));
-            if ('${theme}' !== 'dark') {
-              document.body.classList.add('${theme}');
+            if (theme !== 'dark') {
+              document.body.classList.add(theme);
             } else {
               document.body.classList.remove('light', 'blueberry', 'acai', 'emerald');
             }
-            localStorage.setItem('vitamin-theme', '${theme}');
+            localStorage.setItem('vitamin-theme', theme);
             const versionEl = document.getElementById('app-version');
-            if (versionEl) versionEl.textContent = 'v${version}';
-            document.body.style.backgroundColor = '${theme}' === 'light' ? '#ffffff' : '#0d0d0d';
+            if (versionEl) versionEl.textContent = 'v' + version;
+            document.body.style.backgroundColor = theme === 'light' ? '#ffffff' : '#0d0d0d';
             if (typeof applyTheme === 'function') {
-              applyTheme('${theme}');
+              applyTheme(theme);
             }
           } catch (err) {
             console.error('Failed to apply theme on refresh:', err);
@@ -1443,30 +1649,34 @@ ipcMain.on('go-home', () => {
     view.webContents.loadFile('html/start.html');
     // Apply theme and version after start page loads
     view.webContents.once('dom-ready', () => {
-      const theme = settings.theme;
+      const theme = normalizeTheme(settings.theme);
       const version = app.getVersion();
+      const safeTheme = JSON.stringify(theme);
+      const safeVersion = JSON.stringify(version);
       view.webContents.send('theme-change', theme);
       view.webContents.executeJavaScript(`
         try {
+          const theme = ${safeTheme};
+          const version = ${safeVersion};
           const allThemeClasses = ['light', 'blueberry', 'acai', 'emerald'];
           allThemeClasses.forEach(cls => document.body.classList.remove(cls));
-          if ('${theme}' !== 'dark') {
-            document.body.classList.add('${theme}');
+          if (theme !== 'dark') {
+            document.body.classList.add(theme);
           } else {
             // For dark theme, ensure we have the right styling
             document.body.classList.remove('light', 'blueberry', 'acai', 'emerald');
           }
-          localStorage.setItem('vitamin-theme', '${theme}');
+          localStorage.setItem('vitamin-theme', theme);
           // Set version
           const versionEl = document.getElementById('app-version');
-          if (versionEl) versionEl.textContent = 'v${version}';
+          if (versionEl) versionEl.textContent = 'v' + version;
 
           // Ensure proper background color
-          document.body.style.backgroundColor = '${theme}' === 'light' ? '#ffffff' : '#0a0a0a';
+          document.body.style.backgroundColor = theme === 'light' ? '#ffffff' : '#0a0a0a';
 
           // Apply theme if applyTheme function exists
           if (typeof applyTheme === 'function') {
-            applyTheme('${theme}');
+            applyTheme(theme);
           }
         } catch (err) {
           console.error('Failed to apply theme on go-home:', err);
@@ -1626,9 +1836,19 @@ async function doPoison() {
 
     // Create hidden view for the search
     const poisonView = new BrowserView({
-      webPreferences: { nodeIntegration: false },
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true,
+        webSecurity: true,
+        enableRemoteModule: false,
+        spellcheck: false,
+        session: session.defaultSession
+      },
       backgroundColor: '#0a0a0a'
     });
+
+    registerFingerprintProtection(poisonView.webContents);
 
     // Log when page actually loads (proof it's real)
     poisonView.webContents.on('did-finish-load', () => {
@@ -1652,9 +1872,19 @@ async function doPoison() {
     activity = { type: 'visit', url: site, time: new Date().toLocaleTimeString() };
 
     const poisonView = new BrowserView({
-      webPreferences: { nodeIntegration: false },
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true,
+        webSecurity: true,
+        enableRemoteModule: false,
+        spellcheck: false,
+        session: session.defaultSession
+      },
       backgroundColor: '#0a0a0a'
     });
+
+    registerFingerprintProtection(poisonView.webContents);
 
     // Log when page actually loads (proof it's real)
     poisonView.webContents.on('did-finish-load', () => {
@@ -1755,22 +1985,23 @@ ipcMain.on('open-external', (event, url) => {
 });
 
 ipcMain.on('set-theme', (event, theme) => {
+  if (denyIfUntrusted(event, 'set-theme')) return;
   // Update settings and save immediately
-  settings.theme = theme;
+  settings.theme = normalizeTheme(theme);
   saveSettings();
 
   // Set native theme so websites respect light/dark preference
   // Only 'light' (Creamsicle) is light mode, all others are dark
-  nativeTheme.themeSource = (theme === 'light') ? 'light' : 'dark';
+  nativeTheme.themeSource = (settings.theme === 'light') ? 'light' : 'dark';
 
   // Apply theme to all open windows
   BrowserWindow.getAllWindows().forEach(window => {
-    window.setBackgroundColor(theme === 'dark' ? '#0d0d0d' : '#ffffff');
-    window.webContents.send('theme-change', theme);
+    window.setBackgroundColor(settings.theme === 'dark' ? '#0d0d0d' : '#ffffff');
+    window.webContents.send('theme-change', settings.theme);
   });
 
   // Apply theme to all BrowserViews
-  applyThemeToAllViews(theme);
+  applyThemeToAllViews(settings.theme);
 });
 
 // Apply theme to all BrowserViews
@@ -1874,6 +2105,21 @@ ipcMain.handle('get-settings', (event) => {
   return settings;
 });
 
+ipcMain.handle('get-fingerprint-setting', () => {
+  return settings.blockFingerprinting;
+});
+
+ipcMain.on('get-fingerprint-setting-sync', (event) => {
+  event.returnValue = settings.blockFingerprinting;
+});
+
+ipcMain.on('get-privacy-settings-sync', (event) => {
+  event.returnValue = {
+    blockFingerprinting: settings.blockFingerprinting,
+    blockFingerprintTests: settings.blockFingerprintTests
+  };
+});
+
 // Get current poison state
 ipcMain.handle('get-poison-state', (event) => {
   if (denyIfUntrusted(event, 'get-poison-state')) return false;
@@ -1889,6 +2135,24 @@ ipcMain.handle('get-performance-metrics', (event) => {
 // Restore session toggle
 ipcMain.on('toggle-restore-session', (event, enabled) => {
   settings.restoreSession = enabled;
+  saveSettings();
+});
+
+ipcMain.on('toggle-popups', (event, enabled) => {
+  settings.blockPopups = enabled;
+  saveSettings();
+});
+
+ipcMain.on('toggle-aggressive-adblock', (event, enabled) => {
+  settings.aggressiveAdBlock = enabled;
+  saveSettings();
+  adblockModule.reinitialize().catch(err => {
+    console.error('Failed to reinitialize ad blocker:', err.message);
+  });
+});
+
+ipcMain.on('toggle-fingerprint-tests', (event, enabled) => {
+  settings.blockFingerprintTests = enabled;
   saveSettings();
 });
 
@@ -1955,6 +2219,13 @@ ipcMain.handle('run-bookmarklet', async (event, jsCode) => {
   const view = getActiveView();
   if (view) {
     try {
+      if (typeof jsCode !== 'string' || jsCode.trim() === '') {
+        return { success: false, error: 'Invalid bookmarklet' };
+      }
+      const currentUrl = view.webContents.getURL();
+      if (!isSafeExternalUrl(currentUrl)) {
+        return { success: false, error: 'Bookmarklets only work on http(s) pages' };
+      }
       await view.webContents.executeJavaScript(jsCode);
       return { success: true };
     } catch (err) {
@@ -2160,6 +2431,8 @@ app.whenReady().then(async () => {
   // Set native theme so websites respect light/dark preference on startup
   nativeTheme.themeSource = (settings.theme === 'light') ? 'light' : 'dark';
 
+  registerFingerprintPreloadScript();
+
   // Initialize favicon cache
   initFaviconCache();
 
@@ -2172,6 +2445,9 @@ app.whenReady().then(async () => {
     getMainWindow: () => mainWindow
   });
   adblockModule.registerIPC(saveSettings);
+  adblockModule.init().catch(err => {
+    console.error('Failed to initialize ad blocker:', err.message);
+  });
   loadCustomPersonas();
 
   // Apply privacy settings
@@ -2477,6 +2753,10 @@ async function nukeEverything() {
 
   const ses = session.defaultSession;
   const userDataPath = app.getPath('userData');
+  const appDataPath = app.getPath('appData');
+  if (path.resolve(userDataPath) === path.resolve(appDataPath)) {
+    throw new Error('Refusing to shred appData root');
+  }
   console.log('[NUKE] userData path:', userDataPath);
 
   // 1. Clear ALL in-memory data

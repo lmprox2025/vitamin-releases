@@ -3481,6 +3481,15 @@
       <button class="toggle-switch on" id="adblock-toggle">
         Block Ads & Trackers
       </button>
+      <button class="toggle-switch on" id="aggressive-adblock-toggle" style="margin-top: 8px;">
+        Aggressive Ad & Tracker Blocking
+      </button>
+      <button class="toggle-switch on" id="popup-toggle" style="margin-top: 8px;">
+        Block Pop-up Windows
+      </button>
+      <button class="toggle-switch on" id="fingerprint-test-toggle" style="margin-top: 8px;">
+        Block Fingerprint Tests (EFF)
+      </button>
       <div class="blocked-stat">
         <span class="stat-value" id="blocked-count">0</span>
         <span class="stat-label">requests blocked</span>
@@ -3928,6 +3937,45 @@ https://www.coindesk.com"></textarea>
       return div.innerHTML;
     }
 
+    function safeText(value) {
+      if (typeof value === 'string') return value;
+      if (value === null || value === undefined) return '';
+      return String(value);
+    }
+
+    function clearElement(element) {
+      while (element.firstChild) {
+        element.removeChild(element.firstChild);
+      }
+    }
+
+    function isSafeImageUrl(url) {
+      if (typeof url !== 'string') return false;
+      try {
+        const parsed = new URL(url);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function createIconElement(url, imgClass, placeholderClass) {
+      if (isSafeImageUrl(url)) {
+        const img = document.createElement('img');
+        img.className = imgClass;
+        img.src = url;
+        img.addEventListener('error', () => {
+          const placeholder = document.createElement('div');
+          placeholder.className = placeholderClass;
+          img.replaceWith(placeholder);
+        });
+        return img;
+      }
+      const placeholder = document.createElement('div');
+      placeholder.className = placeholderClass;
+      return placeholder;
+    }
+
     function renderTabs(data) {
       currentActiveTabId = data.activeTabId;
 
@@ -3948,21 +3996,19 @@ https://www.coindesk.com"></textarea>
       // Render tabs
       data.tabs.forEach(tab => {
         const tabEl = document.createElement('div');
+        const title = safeText(tab.title || 'New Tab');
         tabEl.className = `tab ${tab.id === data.activeTabId ? 'active' : ''}`;
         tabEl.dataset.tabId = tab.id;
-        tabEl.title = tab.title || 'New Tab';
+        tabEl.title = title;
 
         // Favicon
-        const faviconHtml = tab.favicon
-          ? `<img class="tab-favicon" src="${escapeHtml(tab.favicon)}" onerror="this.outerHTML='<div class=\\'tab-favicon-placeholder\\'></div>'">`
-          : `<div class="tab-favicon-placeholder"></div>`;
+        const faviconEl = createIconElement(tab.favicon, 'tab-favicon', 'tab-favicon-placeholder');
+        tabEl.appendChild(faviconEl);
 
-        const title = tab.title || 'New Tab';
-
-        tabEl.innerHTML = `
-          ${faviconHtml}
-          <span class="tab-title">${escapeHtml(title)}</span>
-        `;
+        const titleEl = document.createElement('span');
+        titleEl.className = 'tab-title';
+        titleEl.textContent = title;
+        tabEl.appendChild(titleEl);
 
         // Click tab to switch
         tabEl.addEventListener('click', () => {
@@ -4225,12 +4271,18 @@ https://www.coindesk.com"></textarea>
     const personaSection = document.getElementById('persona-section');
     const personaSelect = document.getElementById('persona-select');
     const adblockToggle = document.getElementById('adblock-toggle');
+    const aggressiveAdblockToggle = document.getElementById('aggressive-adblock-toggle');
+    const popupToggle = document.getElementById('popup-toggle');
+    const fingerprintTestToggle = document.getElementById('fingerprint-test-toggle');
     const blockedCount = document.getElementById('blocked-count');
     const autoUpdateToggle = document.getElementById('auto-update-toggle');
 
     let currentFrequency = 'medium';
     let currentPersona = null;
     let adBlockEnabled = true;
+    let aggressiveAdblockEnabled = true;
+    let popupBlockingEnabled = true;
+    let fingerprintTestsBlocked = true;
     let autoUpdateEnabled = true;
     let availablePersonas = []; // Store available personas for lookup
 
@@ -4355,6 +4407,27 @@ https://www.coindesk.com"></textarea>
       window.vitamin.toggleAdBlock(adBlockEnabled);
     });
 
+    // Aggressive adblock toggle
+    aggressiveAdblockToggle.addEventListener('click', () => {
+      aggressiveAdblockEnabled = !aggressiveAdblockEnabled;
+      aggressiveAdblockToggle.classList.toggle('on', aggressiveAdblockEnabled);
+      window.vitamin.toggleAggressiveAdBlock(aggressiveAdblockEnabled);
+    });
+
+    // Pop-up blocking toggle
+    popupToggle.addEventListener('click', () => {
+      popupBlockingEnabled = !popupBlockingEnabled;
+      popupToggle.classList.toggle('on', popupBlockingEnabled);
+      window.vitamin.togglePopups(popupBlockingEnabled);
+    });
+
+    // Fingerprint test blocking toggle
+    fingerprintTestToggle.addEventListener('click', () => {
+      fingerprintTestsBlocked = !fingerprintTestsBlocked;
+      fingerprintTestToggle.classList.toggle('on', fingerprintTestsBlocked);
+      window.vitamin.toggleFingerprintTests(fingerprintTestsBlocked);
+    });
+
     // Auto-update toggle
     autoUpdateToggle.addEventListener('click', () => {
       autoUpdateEnabled = !autoUpdateEnabled;
@@ -4423,6 +4496,18 @@ https://www.coindesk.com"></textarea>
 
         // Update adblock UI
         adblockToggle.classList.toggle('on', adBlockEnabled);
+
+        // Update aggressive adblock UI
+        aggressiveAdblockEnabled = settings.aggressiveAdBlock !== false;
+        aggressiveAdblockToggle.classList.toggle('on', aggressiveAdblockEnabled);
+
+        // Update pop-up blocking UI
+        popupBlockingEnabled = settings.blockPopups !== false;
+        popupToggle.classList.toggle('on', popupBlockingEnabled);
+
+        // Update fingerprint test blocking UI
+        fingerprintTestsBlocked = settings.blockFingerprintTests !== false;
+        fingerprintTestToggle.classList.toggle('on', fingerprintTestsBlocked);
 
         // Update auto-update UI
         autoUpdateEnabled = settings.autoUpdate !== false;
@@ -4512,7 +4597,13 @@ https://www.coindesk.com"></textarea>
 
     function showWhatsNew(version, notes) {
       whatsNewVersion.textContent = version;
-      whatsNewList.innerHTML = notes.map(note => `<li>${note}</li>`).join('');
+      clearElement(whatsNewList);
+      const safeNotes = Array.isArray(notes) ? notes : [];
+      safeNotes.forEach(note => {
+        const li = document.createElement('li');
+        li.textContent = safeText(note);
+        whatsNewList.appendChild(li);
+      });
       whatsNewModal.classList.add('open');
       window.vitamin.modalOpen(); // Hide BrowserView so modal is visible
     }
@@ -4694,26 +4785,61 @@ https://www.coindesk.com"></textarea>
         return;
       }
 
-      bookmarksList.innerHTML = bookmarks.map(b => `
-        <div class="panel-item" data-url="${escapeHtml(b.url)}" data-title="${escapeHtml(b.title)}">
-          ${b.favicon ? `<img class="panel-item-icon" src="${escapeHtml(b.favicon)}" onerror="this.className='panel-item-icon-placeholder'">` : '<div class="panel-item-icon-placeholder"></div>'}
-          <div class="panel-item-content">
-            <div class="panel-item-title">${escapeHtml(b.title)}</div>
-            <div class="panel-item-subtitle">${escapeHtml(b.url)}</div>
-          </div>
-          <button class="panel-item-edit" data-url="${escapeHtml(b.url)}" data-title="${escapeHtml(b.title)}" title="Edit">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-          <button class="panel-item-remove" data-url="${escapeHtml(b.url)}" title="Remove">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-      `).join('');
+      clearElement(bookmarksList);
+      const bookmarksFragment = document.createDocumentFragment();
+      bookmarks.forEach(b => {
+        const url = safeText(b.url);
+        const title = safeText(b.title || b.url || 'Untitled');
+        const item = document.createElement('div');
+        item.className = 'panel-item';
+        item.dataset.url = url;
+        item.dataset.title = title;
+
+        const icon = createIconElement(b.favicon, 'panel-item-icon', 'panel-item-icon-placeholder');
+        item.appendChild(icon);
+
+        const content = document.createElement('div');
+        content.className = 'panel-item-content';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'panel-item-title';
+        titleEl.textContent = title;
+
+        const subtitleEl = document.createElement('div');
+        subtitleEl.className = 'panel-item-subtitle';
+        subtitleEl.textContent = url;
+
+        content.appendChild(titleEl);
+        content.appendChild(subtitleEl);
+        item.appendChild(content);
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'panel-item-edit';
+        editBtn.dataset.url = url;
+        editBtn.dataset.title = title;
+        editBtn.title = 'Edit';
+        editBtn.innerHTML = `
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        `;
+        item.appendChild(editBtn);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'panel-item-remove';
+        removeBtn.dataset.url = url;
+        removeBtn.title = 'Remove';
+        removeBtn.innerHTML = `
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        `;
+        item.appendChild(removeBtn);
+
+        bookmarksFragment.appendChild(item);
+      });
+      bookmarksList.appendChild(bookmarksFragment);
 
       bookmarksList.querySelectorAll('.panel-item').forEach(item => {
         item.addEventListener('click', (e) => {
@@ -4841,26 +4967,58 @@ https://www.coindesk.com"></textarea>
         return;
       }
 
-      downloadsList.innerHTML = downloads.map(d => {
+      clearElement(downloadsList);
+      const downloadsFragment = document.createDocumentFragment();
+      downloads.forEach(d => {
         const progress = d.totalBytes > 0 ? Math.round((d.receivedBytes / d.totalBytes) * 100) : 0;
         const isCompleted = d.state === 'completed';
-        const statusText = isCompleted ? 'Completed' : (d.state === 'progressing' ? `${progress}%` : d.state);
+        const statusText = isCompleted ? 'Completed' : (d.state === 'progressing' ? `${progress}%` : safeText(d.state));
+        const filename = safeText(d.filename || 'Download');
+        const savePath = safeText(d.savePath || '');
 
-        return `
-          <div class="panel-item" data-path="${escapeHtml(d.savePath || '')}">
-            <div class="panel-item-icon-placeholder" style="display:flex;align-items:center;justify-content:center;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              </svg>
-            </div>
-            <div class="panel-item-content">
-              <div class="panel-item-title">${escapeHtml(d.filename)}</div>
-              ${!isCompleted ? `<div class="download-progress"><div class="download-progress-bar" style="width: ${progress}%"></div></div>` : ''}
-              <div class="panel-item-status ${isCompleted ? 'completed' : ''}">${statusText}</div>
-            </div>
-          </div>
+        const item = document.createElement('div');
+        item.className = 'panel-item';
+        item.dataset.path = savePath;
+
+        const icon = document.createElement('div');
+        icon.className = 'panel-item-icon-placeholder';
+        icon.style.display = 'flex';
+        icon.style.alignItems = 'center';
+        icon.style.justifyContent = 'center';
+        icon.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          </svg>
         `;
-      }).join('');
+        item.appendChild(icon);
+
+        const content = document.createElement('div');
+        content.className = 'panel-item-content';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'panel-item-title';
+        titleEl.textContent = filename;
+        content.appendChild(titleEl);
+
+        if (!isCompleted) {
+          const progressWrap = document.createElement('div');
+          progressWrap.className = 'download-progress';
+          const progressBar = document.createElement('div');
+          progressBar.className = 'download-progress-bar';
+          progressBar.style.width = `${progress}%`;
+          progressWrap.appendChild(progressBar);
+          content.appendChild(progressWrap);
+        }
+
+        const statusEl = document.createElement('div');
+        statusEl.className = `panel-item-status ${isCompleted ? 'completed' : ''}`;
+        statusEl.textContent = statusText;
+        content.appendChild(statusEl);
+
+        item.appendChild(content);
+        downloadsFragment.appendChild(item);
+      });
+      downloadsList.appendChild(downloadsFragment);
 
       downloadsList.querySelectorAll('.panel-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -4923,19 +5081,40 @@ https://www.coindesk.com"></textarea>
         return;
       }
 
-      historyList.innerHTML = history.slice(0, 100).map(h => {
+      clearElement(historyList);
+      const historyFragment = document.createDocumentFragment();
+      history.slice(0, 100).forEach(h => {
         const date = new Date(h.timestamp);
         const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        return `
-          <div class="panel-item" data-url="${escapeHtml(h.url)}">
-            <div class="panel-item-icon-placeholder"></div>
-            <div class="panel-item-content">
-              <div class="panel-item-title">${escapeHtml(h.title)}</div>
-              <div class="panel-item-subtitle">${timeStr} - ${escapeHtml(h.url)}</div>
-            </div>
-          </div>
-        `;
-      }).join('');
+        const url = safeText(h.url);
+        const title = safeText(h.title || url || 'Untitled');
+
+        const item = document.createElement('div');
+        item.className = 'panel-item';
+        item.dataset.url = url;
+
+        const icon = document.createElement('div');
+        icon.className = 'panel-item-icon-placeholder';
+        item.appendChild(icon);
+
+        const content = document.createElement('div');
+        content.className = 'panel-item-content';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'panel-item-title';
+        titleEl.textContent = title;
+
+        const subtitleEl = document.createElement('div');
+        subtitleEl.className = 'panel-item-subtitle';
+        subtitleEl.textContent = `${timeStr} - ${url}`;
+
+        content.appendChild(titleEl);
+        content.appendChild(subtitleEl);
+        item.appendChild(content);
+
+        historyFragment.appendChild(item);
+      });
+      historyList.appendChild(historyFragment);
 
       historyList.querySelectorAll('.panel-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -5061,28 +5240,77 @@ https://www.coindesk.com"></textarea>
         grouped[domain].push(c);
       });
 
-      cookiesList.innerHTML = Object.entries(grouped).map(([domain, domainCookies]) => `
-        <div class="cookie-domain" data-domain="${escapeHtml(domain)}">
-          <div class="cookie-domain-header">
-            <img class="panel-item-icon" src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32" onerror="this.className='panel-item-icon-placeholder'">
-            <div class="panel-item-content">
-              <div class="panel-item-title">${escapeHtml(domain)}</div>
-              <div class="panel-item-subtitle">${domainCookies.length} cookie${domainCookies.length > 1 ? 's' : ''}</div>
-            </div>
-            <svg class="cookie-expand-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </div>
-          <div class="cookie-details">
-            ${domainCookies.map(c => `
-              <div class="cookie-item">
-                <div class="cookie-name">${escapeHtml(c.name)}</div>
-                <div class="cookie-value">${escapeHtml(c.value.slice(0, 50))}${c.value.length > 50 ? '...' : ''}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `).join('');
+      clearElement(cookiesList);
+      const cookiesFragment = document.createDocumentFragment();
+      Object.entries(grouped).forEach(([domain, domainCookies]) => {
+        const safeDomain = safeText(domain);
+        const cookieCount = domainCookies.length;
+
+        const domainEl = document.createElement('div');
+        domainEl.className = 'cookie-domain';
+        domainEl.dataset.domain = safeDomain;
+
+        const header = document.createElement('div');
+        header.className = 'cookie-domain-header';
+
+        const iconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(safeDomain)}&sz=32`;
+        const icon = createIconElement(iconUrl, 'panel-item-icon', 'panel-item-icon-placeholder');
+        header.appendChild(icon);
+
+        const headerContent = document.createElement('div');
+        headerContent.className = 'panel-item-content';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'panel-item-title';
+        titleEl.textContent = safeDomain;
+
+        const subtitleEl = document.createElement('div');
+        subtitleEl.className = 'panel-item-subtitle';
+        subtitleEl.textContent = `${cookieCount} cookie${cookieCount > 1 ? 's' : ''}`;
+
+        headerContent.appendChild(titleEl);
+        headerContent.appendChild(subtitleEl);
+        header.appendChild(headerContent);
+
+        const expandIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        expandIcon.setAttribute('class', 'cookie-expand-icon');
+        expandIcon.setAttribute('width', '12');
+        expandIcon.setAttribute('height', '12');
+        expandIcon.setAttribute('viewBox', '0 0 24 24');
+        expandIcon.setAttribute('fill', 'none');
+        expandIcon.setAttribute('stroke', 'currentColor');
+        expandIcon.setAttribute('stroke-width', '2');
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', '6 9 12 15 18 9');
+        expandIcon.appendChild(polyline);
+        header.appendChild(expandIcon);
+
+        const details = document.createElement('div');
+        details.className = 'cookie-details';
+
+        domainCookies.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'cookie-item';
+
+          const nameEl = document.createElement('div');
+          nameEl.className = 'cookie-name';
+          nameEl.textContent = safeText(c.name);
+
+          const valueEl = document.createElement('div');
+          valueEl.className = 'cookie-value';
+          const rawValue = safeText(c.value);
+          valueEl.textContent = rawValue.length > 50 ? `${rawValue.slice(0, 50)}...` : rawValue;
+
+          item.appendChild(nameEl);
+          item.appendChild(valueEl);
+          details.appendChild(item);
+        });
+
+        domainEl.appendChild(header);
+        domainEl.appendChild(details);
+        cookiesFragment.appendChild(domainEl);
+      });
+      cookiesList.appendChild(cookiesFragment);
 
       // Toggle expansion
       cookiesList.querySelectorAll('.cookie-domain-header').forEach(header => {
@@ -5280,14 +5508,30 @@ https://www.coindesk.com"></textarea>
       // Sort versions in descending order and show all
       const versions = Object.keys(changelog).sort().reverse();
 
-      changelogListEl.innerHTML = versions.map(v => `
-        <div class="changelog-version">
-          <div class="changelog-version-title">v${v}</div>
-          <ul class="changelog-version-notes">
-            ${changelog[v].map(note => `<li>${note}</li>`).join('')}
-          </ul>
-        </div>
-      `).join('');
+      clearElement(changelogListEl);
+      const changelogFragment = document.createDocumentFragment();
+      versions.forEach(v => {
+        const versionBlock = document.createElement('div');
+        versionBlock.className = 'changelog-version';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'changelog-version-title';
+        titleEl.textContent = `v${safeText(v)}`;
+        versionBlock.appendChild(titleEl);
+
+        const notesList = document.createElement('ul');
+        notesList.className = 'changelog-version-notes';
+        const notes = Array.isArray(changelog[v]) ? changelog[v] : [];
+        notes.forEach(note => {
+          const li = document.createElement('li');
+          li.textContent = safeText(note);
+          notesList.appendChild(li);
+        });
+        versionBlock.appendChild(notesList);
+
+        changelogFragment.appendChild(versionBlock);
+      });
+      changelogListEl.appendChild(changelogFragment);
 
       changelogModal.classList.add('open');
       window.vitamin.modalOpen();
@@ -5453,25 +5697,50 @@ https://www.coindesk.com"></textarea>
       }
 
       customPersonasList.style.display = 'block';
-      customPersonasList.innerHTML = personas.map(p => `
-        <div class="custom-persona-item" data-persona-id="${p.id}">
-          <span class="custom-persona-name">${escapeHtml(p.name)}</span>
-          <div class="custom-persona-actions">
-            <button class="custom-persona-btn edit" title="Edit">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-            </button>
-            <button class="custom-persona-btn delete" title="Delete">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      `).join('');
+      clearElement(customPersonasList);
+      const personasFragment = document.createDocumentFragment();
+      personas.forEach(p => {
+        const id = safeText(p.id);
+        const name = safeText(p.name || 'Custom Persona');
+
+        const item = document.createElement('div');
+        item.className = 'custom-persona-item';
+        item.dataset.personaId = id;
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'custom-persona-name';
+        nameEl.textContent = name;
+        item.appendChild(nameEl);
+
+        const actions = document.createElement('div');
+        actions.className = 'custom-persona-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'custom-persona-btn edit';
+        editBtn.title = 'Edit';
+        editBtn.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        `;
+        actions.appendChild(editBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'custom-persona-btn delete';
+        deleteBtn.title = 'Delete';
+        deleteBtn.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        `;
+        actions.appendChild(deleteBtn);
+
+        item.appendChild(actions);
+        personasFragment.appendChild(item);
+      });
+      customPersonasList.appendChild(personasFragment);
 
       // Add event listeners
       customPersonasList.querySelectorAll('.custom-persona-item').forEach(item => {
