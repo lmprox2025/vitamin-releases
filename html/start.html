@@ -850,8 +850,8 @@
     }
 
     // Get current tier and update logo
-    if (window.chrome && window.chrome.ipcRenderer) {
-      window.chrome.ipcRenderer.invoke('get-settings').then(settings => {
+    if (window.vitamin && window.vitamin.getSettings) {
+      window.vitamin.getSettings().then(settings => {
         if (settings && settings.tier) {
           updateLogoForTier(settings.tier);
         }
@@ -859,14 +859,14 @@
     }
 
     // Listen for theme changes from main process
-    if (window.chrome && window.chrome.ipcRenderer) {
-      window.chrome.ipcRenderer.on('theme-change', (event, theme) => {
+    if (window.vitamin && window.vitamin.onThemeChange) {
+      window.vitamin.onThemeChange((theme) => {
         applyTheme(theme);
         localStorage.setItem('vitamin-theme', theme);
       });
 
       // Listen for poison state changes from main process
-      window.chrome.ipcRenderer.on('poison-state', (event, enabled) => {
+      window.vitamin.onPoisonState((enabled) => {
         const logoBold = document.querySelector('.logo-bold');
         if (!logoBold) return;
 
@@ -902,7 +902,7 @@
       });
 
       // Listen for performance mode changes from main process
-      window.chrome.ipcRenderer.on('performance-mode-change', (event, enabled) => {
+      window.vitamin.onPerformanceModeChange((enabled) => {
         performanceModeEnabled = enabled;
         if (enabled) {
           document.body.classList.add('performance-mode');
@@ -1004,13 +1004,13 @@
 
     searchBox.addEventListener('keypress', (e) => {
       if (e.key === 'Enter' && searchBox.value.trim()) {
-        const query = encodeURIComponent(searchBox.value.trim());
+        const query = searchBox.value.trim();
         // Send search query to main process instead of direct navigation
-        if (window.chrome && window.chrome.ipcRenderer) {
-          window.chrome.ipcRenderer.send('search-request', query);
+        if (window.vitamin && window.vitamin.searchRequest) {
+          window.vitamin.searchRequest(query);
         } else {
           // Fallback to direct navigation if IPC is not available
-          window.location.href = `https://duckduckgo.com/?q=${query}`;
+          window.location.href = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
         }
       }
     });

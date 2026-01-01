@@ -1,5 +1,6 @@
 const { app, BrowserWindow, BrowserView, ipcMain, nativeImage, session, globalShortcut, Menu, net, shell, nativeTheme } = require('electron');
 const path = require('path');
+const { fileURLToPath } = require('url');
 const fs = require('fs');
 const { frequencies, getSearchTerms, getSites, getDelay, getPersonaList, getFrequencyList } = require('./poisonData');
 const fetch = require('cross-fetch');
@@ -77,6 +78,40 @@ app.setName('Vitamin');
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 const sessionPath = path.join(app.getPath('userData'), 'session.json');
 const customPersonasPath = path.join(app.getPath('userData'), 'custom-personas.json');
+const INTERNAL_HTML_DIR = path.resolve(__dirname, 'html');
+
+function isInternalFileUrl(url) {
+  if (!url || !url.startsWith('file://')) return false;
+  try {
+    const filePath = fileURLToPath(url);
+    const resolvedPath = path.resolve(filePath);
+    return resolvedPath.startsWith(INTERNAL_HTML_DIR + path.sep);
+  } catch (err) {
+    return false;
+  }
+}
+
+function isTrustedSender(event) {
+  const senderUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || '';
+  return isInternalFileUrl(senderUrl);
+}
+
+function denyIfUntrusted(event, channel) {
+  if (isTrustedSender(event)) return false;
+  const senderUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || 'unknown';
+  console.warn(`[SECURITY] Blocked ${channel} from ${senderUrl}`);
+  return true;
+}
+
+function isSafeExternalUrl(url) {
+  if (typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch (err) {
+    return false;
+  }
+}
 
 // Get performance metrics
 function getPerformanceMetrics() {
@@ -206,6 +241,11 @@ function saveSession() {
 
 // Downloads tracking
 let downloads = [];
+
+function isKnownDownloadPath(savePath) {
+  if (typeof savePath !== 'string' || savePath.length === 0) return false;
+  return downloads.some(download => download.savePath === savePath);
+}
 
 // Custom personas storage
 let customPersonas = [];
@@ -1275,7 +1315,9 @@ ipcMain.on('go-forward', () => {
 
 // Handle search requests from start page
 ipcMain.on('search-request', (event, query) => {
-  const searchUrl = `https://duckduckgo.com/?q=${query}`;
+  if (denyIfUntrusted(event, 'search-request')) return;
+  const safeQuery = typeof query === 'string' ? query : '';
+  const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(safeQuery)}`;
 
   // If we're on the start page (no tabs), create a new tab with the search
   if (tabs.length === 0) {
@@ -1293,6 +1335,7 @@ ipcMain.on('search-request', (event, query) => {
 
 // Handle "Proceed Anyway" for Palantir URLs
 ipcMain.on('proceed-palantir-url', (event, url) => {
+  if (denyIfUntrusted(event, 'proceed-palantir-url')) return;
   const view = getActiveView();
   if (!view || !url) return;
 
@@ -1304,6 +1347,7 @@ ipcMain.on('proceed-palantir-url', (event, url) => {
 
 // Handle "Proceed Anyway" for blocked URLs (error -20)
 ipcMain.on('proceed-blocked-url', (event, url) => {
+  if (denyIfUntrusted(event, 'proceed-blocked-url')) return;
   const view = getActiveView();
   if (!view || !url) return;
 
@@ -1702,7 +1746,11 @@ ipcMain.handle('get-frequencies', () => {
 
 // Open external URL in default browser
 ipcMain.on('open-external', (event, url) => {
-  const { shell } = require('electron');
+  if (denyIfUntrusted(event, 'open-external')) return;
+  if (!isSafeExternalUrl(url)) {
+    console.warn(`[SECURITY] Blocked open-external for invalid URL: ${url}`);
+    return;
+  }
   shell.openExternal(url);
 });
 
@@ -1821,17 +1869,20 @@ ipcMain.on('toggle-auto-update', (event, enabled) => {
   console.log(`Auto-update set to ${enabled}`);
 });
 
-ipcMain.handle('get-settings', () => {
+ipcMain.handle('get-settings', (event) => {
+  if (denyIfUntrusted(event, 'get-settings')) return null;
   return settings;
 });
 
 // Get current poison state
-ipcMain.handle('get-poison-state', () => {
+ipcMain.handle('get-poison-state', (event) => {
+  if (denyIfUntrusted(event, 'get-poison-state')) return false;
   return isPoisoning;
 });
 
 // Get performance metrics
-ipcMain.handle('get-performance-metrics', () => {
+ipcMain.handle('get-performance-metrics', (event) => {
+  if (denyIfUntrusted(event, 'get-performance-metrics')) return null;
   return getPerformanceMetrics();
 });
 
@@ -1898,6 +1949,9 @@ function applyPerformanceModeToAllViews(enabled) {
 
 // Run bookmarklet (execute JavaScript in page context)
 ipcMain.handle('run-bookmarklet', async (event, jsCode) => {
+  if (denyIfUntrusted(event, 'run-bookmarklet')) {
+    return { success: false, error: 'Untrusted sender' };
+  }
   const view = getActiveView();
   if (view) {
     try {
@@ -1912,7 +1966,8 @@ ipcMain.handle('run-bookmarklet', async (event, jsCode) => {
 });
 
 // ===== Cookies =====
-ipcMain.handle('get-cookies', async () => {
+ipcMain.handle('get-cookies', async (event) => {
+  if (denyIfUntrusted(event, 'get-cookies')) return [];
   try {
     const cookies = await session.defaultSession.cookies.get({});
     return cookies;
@@ -1922,7 +1977,8 @@ ipcMain.handle('get-cookies', async () => {
   }
 });
 
-ipcMain.handle('shred-cookies', async () => {
+ipcMain.handle('shred-cookies', async (event) => {
+  if (denyIfUntrusted(event, 'shred-cookies')) return false;
   try {
     await session.defaultSession.clearStorageData({
       storages: ['cookies']
@@ -1935,21 +1991,32 @@ ipcMain.handle('shred-cookies', async () => {
 });
 
 // ===== Downloads =====
-ipcMain.handle('get-downloads', () => {
+ipcMain.handle('get-downloads', (event) => {
+  if (denyIfUntrusted(event, 'get-downloads')) return [];
   return downloads;
 });
 
 ipcMain.handle('open-download', (event, savePath) => {
-  const { shell } = require('electron');
-  shell.openPath(savePath);
+  if (denyIfUntrusted(event, 'open-download')) return false;
+  if (!isKnownDownloadPath(savePath)) {
+    console.warn(`[SECURITY] Blocked open-download for unknown path: ${savePath}`);
+    return false;
+  }
+  return shell.openPath(savePath);
 });
 
 ipcMain.handle('show-download-in-folder', (event, savePath) => {
-  const { shell } = require('electron');
+  if (denyIfUntrusted(event, 'show-download-in-folder')) return false;
+  if (!isKnownDownloadPath(savePath)) {
+    console.warn(`[SECURITY] Blocked show-download-in-folder for unknown path: ${savePath}`);
+    return false;
+  }
   shell.showItemInFolder(savePath);
+  return true;
 });
 
-ipcMain.handle('clear-downloads', () => {
+ipcMain.handle('clear-downloads', (event) => {
+  if (denyIfUntrusted(event, 'clear-downloads')) return downloads;
   downloads = downloads.filter(d => d.state === 'progressing');
   return downloads;
 });
@@ -1984,7 +2051,8 @@ ipcMain.on('stop-find', () => {
 });
 
 // ===== Changelog =====
-ipcMain.handle('get-changelog', async () => {
+ipcMain.handle('get-changelog', async (event) => {
+  if (denyIfUntrusted(event, 'get-changelog')) return {};
   // Fetch fresh if cache is empty
   if (Object.keys(releaseNotesCache).length === 0) {
     await fetchReleaseNotes();
@@ -1993,12 +2061,14 @@ ipcMain.handle('get-changelog', async () => {
 });
 
 // Get app version
-ipcMain.handle('get-app-version', () => {
+ipcMain.handle('get-app-version', (event) => {
+  if (denyIfUntrusted(event, 'get-app-version')) return null;
   return app.getVersion();
 });
 
 // Get release notes for a version
 ipcMain.handle('get-release-notes', async (event, version) => {
+  if (denyIfUntrusted(event, 'get-release-notes')) return [];
   if (Object.keys(releaseNotesCache).length === 0) {
     await fetchReleaseNotes();
   }
@@ -2013,6 +2083,7 @@ ipcMain.on('mark-version-seen', () => {
 
 // Complete onboarding (first-time setup)
 ipcMain.on('complete-onboarding', (event) => {
+  if (denyIfUntrusted(event, 'complete-onboarding')) return;
   settings.onboardingComplete = true;
   saveSettings();
   // Notify any listeners that onboarding is complete
@@ -2059,13 +2130,17 @@ ipcMain.on('window-maximize', () => {
 });
 
 // Auto-update handlers
-ipcMain.handle('install-update', () => {
+ipcMain.handle('install-update', (event) => {
+  if (denyIfUntrusted(event, 'install-update')) return null;
   if (autoUpdater) {
     autoUpdater.quitAndInstall();
   }
 });
 
-ipcMain.handle('check-for-updates', async () => {
+ipcMain.handle('check-for-updates', async (event) => {
+  if (denyIfUntrusted(event, 'check-for-updates')) {
+    return { success: false, error: 'Untrusted sender' };
+  }
   if (autoUpdater && !isDev) {
     try {
       await autoUpdater.checkForUpdates();
@@ -2500,7 +2575,10 @@ async function nukeEverything() {
 }
 
 // IPC handler for nuke
-ipcMain.handle('nuke-browser-data', async () => {
+ipcMain.handle('nuke-browser-data', async (event) => {
+  if (denyIfUntrusted(event, 'nuke-browser-data')) {
+    return { success: false, error: 'Untrusted sender' };
+  }
   try {
     console.log('[NUKE] IPC handler called');
     const result = await nukeEverything();
@@ -2513,7 +2591,10 @@ ipcMain.handle('nuke-browser-data', async () => {
 });
 
 // IPC handler for closing the browser
-ipcMain.handle('close-browser', async () => {
+ipcMain.handle('close-browser', async (event) => {
+  if (denyIfUntrusted(event, 'close-browser')) {
+    return { success: false, error: 'Untrusted sender' };
+  }
   try {
     // DON'T save anything if nuke was triggered - we just deleted everything!
     if (!nukeInProgress) {
