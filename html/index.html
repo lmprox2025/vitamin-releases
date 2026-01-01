@@ -3487,8 +3487,8 @@
       <button class="toggle-switch on" id="popup-toggle" style="margin-top: 8px;">
         Block Pop-up Windows
       </button>
-      <button class="toggle-switch on" id="fingerprint-test-toggle" style="margin-top: 8px;">
-        Block Fingerprint Tests (EFF)
+      <button class="toggle-switch on" id="fingerprint-toggle" style="margin-top: 8px;">
+        Block Fingerprint
       </button>
       <div class="blocked-stat">
         <span class="stat-value" id="blocked-count">0</span>
@@ -4273,7 +4273,7 @@ https://www.coindesk.com"></textarea>
     const adblockToggle = document.getElementById('adblock-toggle');
     const aggressiveAdblockToggle = document.getElementById('aggressive-adblock-toggle');
     const popupToggle = document.getElementById('popup-toggle');
-    const fingerprintTestToggle = document.getElementById('fingerprint-test-toggle');
+    const fingerprintToggle = document.getElementById('fingerprint-toggle');
     const blockedCount = document.getElementById('blocked-count');
     const autoUpdateToggle = document.getElementById('auto-update-toggle');
 
@@ -4282,7 +4282,7 @@ https://www.coindesk.com"></textarea>
     let adBlockEnabled = true;
     let aggressiveAdblockEnabled = true;
     let popupBlockingEnabled = true;
-    let fingerprintTestsBlocked = true;
+    let fingerprintBlocked = true;
     let autoUpdateEnabled = true;
     let availablePersonas = []; // Store available personas for lookup
 
@@ -4422,10 +4422,10 @@ https://www.coindesk.com"></textarea>
     });
 
     // Fingerprint test blocking toggle
-    fingerprintTestToggle.addEventListener('click', () => {
-      fingerprintTestsBlocked = !fingerprintTestsBlocked;
-      fingerprintTestToggle.classList.toggle('on', fingerprintTestsBlocked);
-      window.vitamin.toggleFingerprintTests(fingerprintTestsBlocked);
+    fingerprintToggle.addEventListener('click', () => {
+      fingerprintBlocked = !fingerprintBlocked;
+      fingerprintToggle.classList.toggle('on', fingerprintBlocked);
+      window.vitamin.togglefingerprint(fingerprintBlocked);
     });
 
     // Auto-update toggle
@@ -4506,8 +4506,8 @@ https://www.coindesk.com"></textarea>
         popupToggle.classList.toggle('on', popupBlockingEnabled);
 
         // Update fingerprint test blocking UI
-        fingerprintTestsBlocked = settings.blockFingerprintTests !== false;
-        fingerprintTestToggle.classList.toggle('on', fingerprintTestsBlocked);
+        fingerprintBlocked = settings.blockfingerprint !== false;
+        fingerprintToggle.classList.toggle('on', fingerprintBlocked);
 
         // Update auto-update UI
         autoUpdateEnabled = settings.autoUpdate !== false;

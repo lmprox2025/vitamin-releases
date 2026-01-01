@@ -241,7 +241,7 @@ let settings = {
   httpsOnly: false,
   blockWebRTC: true,
   blockFingerprinting: true,
-  blockFingerprintTests: true,
+  blockfingerprint: true,
   blockPopups: true,
   clearOnExit: false,
   // Performance settings
@@ -2116,7 +2116,7 @@ ipcMain.on('get-fingerprint-setting-sync', (event) => {
 ipcMain.on('get-privacy-settings-sync', (event) => {
   event.returnValue = {
     blockFingerprinting: settings.blockFingerprinting,
-    blockFingerprintTests: settings.blockFingerprintTests
+    blockfingerprint: settings.blockfingerprint
   };
 });
 
@@ -2152,7 +2152,7 @@ ipcMain.on('toggle-aggressive-adblock', (event, enabled) => {
 });
 
 ipcMain.on('toggle-fingerprint-tests', (event, enabled) => {
-  settings.blockFingerprintTests = enabled;
+  settings.blockfingerprint = enabled;
   saveSettings();
 });
 

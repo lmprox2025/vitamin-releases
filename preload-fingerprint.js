@@ -53,7 +53,7 @@ function getPrivacySettingsSync() {
   try {
     return ipcRenderer.sendSync('get-privacy-settings-sync');
   } catch (err) {
-    return { blockFingerprinting: true, blockFingerprintTests: false };
+    return { blockFingerprinting: true, blockfingerprint: false };
   }
 }
 
@@ -92,9 +92,9 @@ function injectFingerprintTestBlocker() {
 
 const privacySettings = getPrivacySettingsSync();
 const fingerprintingEnabled = privacySettings.blockFingerprinting !== false;
-const fingerprintTestsBlocked = privacySettings.blockFingerprintTests === true;
+const fingerprintBlocked = privacySettings.blockfingerprint === true;
 
-if (!isInternalFile() && fingerprintTestsBlocked && isFingerprintTestHost()) {
+if (!isInternalFile() && fingerprintBlocked && isFingerprintTestHost()) {
   injectFingerprintTestBlocker();
 }
 

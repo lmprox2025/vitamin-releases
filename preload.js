@@ -38,7 +38,7 @@ contextBridge.exposeInMainWorld('vitamin', {
   toggleAdBlock: (enabled) => ipcRenderer.send('toggle-adblock', enabled),
   toggleAggressiveAdBlock: (enabled) => ipcRenderer.send('toggle-aggressive-adblock', enabled),
   togglePopups: (enabled) => ipcRenderer.send('toggle-popups', enabled),
-  toggleFingerprintTests: (enabled) => ipcRenderer.send('toggle-fingerprint-tests', enabled),
+  togglefingerprint: (enabled) => ipcRenderer.send('toggle-fingerprint-tests', enabled),
   toggleAutoUpdate: (enabled) => ipcRenderer.send('toggle-auto-update', enabled),
 
   // Bookmarks
