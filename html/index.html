@@ -102,6 +102,11 @@
       color: var(--text-primary);
     }
 
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     .nav-btn {
       position: relative;
     }
@@ -136,6 +141,15 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       padding: 4px 0;
       min-width: 200px;
+      position: fixed;
+      z-index: 20001;
+      display: none;
+      overflow: visible;
+      -webkit-app-region: no-drag;
+    }
+
+    .context-menu.visible {
+      display: block;
     }
 
     .context-menu-item {
@@ -145,10 +159,75 @@
       cursor: pointer;
       display: flex;
       align-items: center;
+      gap: 8px;
+      position: relative;
     }
 
     .context-menu-item:hover {
       background: var(--bg-tertiary);
+    }
+
+    .context-menu-item.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .context-menu-label {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .context-menu-check {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      line-height: 1;
+      color: #ffffff;
+      flex-shrink: 0;
+      opacity: 0.4;
+    }
+
+    .context-menu-check.placeholder {
+      opacity: 0;
+    }
+
+    .context-menu-item.is-checked .context-menu-check {
+      background: var(--accent);
+      border-color: transparent;
+      opacity: 1;
+    }
+
+    .context-menu-desc {
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      transform: translate(10px, -50%);
+      background: rgba(20, 20, 20, 0.94);
+      color: #f4f4f4;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      z-index: 20002;
+    }
+
+    .context-menu-item:hover .context-menu-desc {
+      opacity: 1;
+    }
+
+    .context-menu[data-tooltip-side="left"] .context-menu-desc {
+      left: auto;
+      right: 100%;
+      transform: translate(-10px, -50%);
     }
 
     .context-menu-separator {
@@ -179,6 +258,13 @@
       max-width: 32px;
       padding: 0 4px;
       gap: 0;
+    }
+
+    .tab-container.compact .tab.has-badges {
+      min-width: 80px;
+      max-width: 120px;
+      padding: 0 6px;
+      gap: 4px;
     }
 
     .tab-container.compact .tab-title {
@@ -261,7 +347,42 @@
       color: var(--text-primary);
     }
 
-    .new-tab-btn, .close-tab-btn {
+    .tab.sleeping {
+      opacity: 0.6;
+    }
+
+    .tab-badges {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .tab-sleep-badge {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 4px;
+      border-radius: 6px;
+      line-height: 1;
+    }
+
+    .tab-clear-badge {
+      font-size: 9px;
+      font-weight: 600;
+      color: #ffb3b3;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      background: rgba(255, 107, 107, 0.15);
+      padding: 2px 4px;
+      border-radius: 6px;
+      line-height: 1;
+    }
+
+    .new-tab-btn, .close-tab-btn, .forget-site-btn {
       width: 22px;
       height: 22px;
       border: none;
@@ -290,6 +411,16 @@
     .close-tab-btn:hover {
       background: rgba(255, 100, 100, 0.15);
       color: #ff6b6b;
+    }
+
+    .forget-site-btn:hover {
+      background: rgba(255, 100, 100, 0.12);
+      color: #ff9f9f;
+    }
+
+    .forget-site-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
     .tab-divider {
@@ -2879,6 +3010,118 @@
       color: var(--accent);
     }
 
+    /* Forget This Site Modal */
+    .forget-modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      width: 360px;
+      max-width: 90vw;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .forget-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .forget-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ff6b6b, #ff8f8f);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .forget-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .forget-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .forget-warning {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+
+    .forget-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 6px;
+    }
+
+    .forget-list li {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .forget-list li::before {
+      content: '•';
+      color: #ff8f8f;
+      font-weight: 700;
+    }
+
+    .forget-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .forget-cancel-btn {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .forget-cancel-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--accent-dim);
+    }
+
+    .forget-confirm-btn {
+      flex: 1;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ff6b6b, #ff4757);
+      color: white;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .forget-confirm-btn:hover {
+      filter: brightness(1.05);
+    }
+
     /* Nuke Button */
     .nuke-btn {
       width: 100%;
@@ -3233,6 +3476,15 @@
         </svg>
       </button>
       <button class="close-tab-btn" id="close-tab-btn" title="Close Tab (⌘W)">×</button>
+      <button class="forget-site-btn" id="forget-site-btn" title="Forget This Site">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6"/>
+          <path d="M14 11v6"/>
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+      </button>
       <div class="tab-divider"></div>
       <div class="tab-bar" id="tab-bar">
         <!-- Tabs rendered dynamically -->
@@ -3487,8 +3739,8 @@
       <button class="toggle-switch on" id="popup-toggle" style="margin-top: 8px;">
         Block Pop-up Windows
       </button>
-      <button class="toggle-switch on" id="fingerprint-toggle" style="margin-top: 8px;">
-        Block Fingerprint
+      <button class="toggle-switch on" id="fingerprint-test-toggle" style="margin-top: 8px;">
+        Block Fingerprint Tests (EFF)
       </button>
       <div class="blocked-stat">
         <span class="stat-value" id="blocked-count">0</span>
@@ -3873,6 +4125,7 @@ https://www.coindesk.com"></textarea>
     const backBtn = document.getElementById('back-btn');
     const forwardBtn = document.getElementById('forward-btn');
     const refreshBtn = document.getElementById('refresh-btn');
+    const forgetSiteBtn = document.getElementById('forget-site-btn');
     const poisonBtn = document.getElementById('poison-btn');
     const poisonLabel = document.getElementById('poison-label');
     const activityList = document.getElementById('activity-list');
@@ -3880,6 +4133,9 @@ https://www.coindesk.com"></textarea>
     const totalSearches = document.getElementById('total-searches');
     const totalVisits = document.getElementById('total-visits');
     let isPoisoning = false;
+    if (forgetSiteBtn) {
+      forgetSiteBtn.disabled = true;
+    }
 
     // Window Controls (Linux & Windows - macOS uses native traffic lights)
     (async () => {
@@ -3907,6 +4163,14 @@ https://www.coindesk.com"></textarea>
       }
     });
 
+    urlBar.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (!window.vitamin || !window.vitamin.showUrlContextMenu) return;
+      const screenX = window.screenX || 0;
+      const screenY = window.screenY || 0;
+      window.vitamin.showUrlContextMenu(screenX + e.clientX, screenY + e.clientY);
+    });
+
     // Select all URL on focus for easy replacement
     urlBar.addEventListener('focus', () => {
       setTimeout(() => urlBar.select(), 0);
@@ -3920,6 +4184,80 @@ https://www.coindesk.com"></textarea>
     backBtn.addEventListener('click', () => window.vitamin.goBack());
     forwardBtn.addEventListener('click', () => window.vitamin.goForward());
     refreshBtn.addEventListener('click', () => window.vitamin.refresh());
+
+    let forgetModal = null;
+    let forgetCancelBtn = null;
+    let forgetConfirmBtn = null;
+    let forgetSiteDomain = null;
+    let forgetBound = false;
+    let forgetKeyHandler = null;
+
+    function getCurrentHostname() {
+      try {
+        return currentUrl ? new URL(currentUrl).hostname : '';
+      } catch (err) {
+        return '';
+      }
+    }
+
+    function ensureForgetModalElements() {
+      if (forgetModal) return true;
+      forgetModal = document.getElementById('forget-modal');
+      if (!forgetModal) return false;
+      forgetCancelBtn = document.getElementById('forget-cancel');
+      forgetConfirmBtn = document.getElementById('forget-confirm');
+      forgetSiteDomain = document.getElementById('forget-site-domain');
+
+      if (!forgetBound) {
+        if (forgetCancelBtn) {
+          forgetCancelBtn.addEventListener('click', closeForgetModal);
+        }
+        forgetModal.addEventListener('click', (e) => {
+          if (e.target === forgetModal) closeForgetModal();
+        });
+        if (forgetConfirmBtn) {
+          forgetConfirmBtn.addEventListener('click', async () => {
+            const result = await window.vitamin.forgetSite();
+            closeForgetModal();
+            if (!result || result.success !== true) {
+              const message = result && result.error ? result.error : 'Failed to forget site';
+              alert(message);
+            }
+          });
+        }
+        forgetBound = true;
+      }
+      return true;
+    }
+
+    function openForgetModal() {
+      if (!ensureForgetModalElements()) return;
+      if (!currentUrl || currentUrl.startsWith('file://')) return;
+      const hostname = getCurrentHostname();
+      if (forgetSiteDomain) {
+        forgetSiteDomain.textContent = hostname || 'this site';
+      }
+      forgetModal.style.display = 'flex';
+      window.vitamin.modalOpen();
+      forgetKeyHandler = (e) => {
+        if (e.key === 'Escape') closeForgetModal();
+      };
+      document.addEventListener('keydown', forgetKeyHandler);
+    }
+
+    function closeForgetModal() {
+      if (!forgetModal) return;
+      forgetModal.style.display = 'none';
+      window.vitamin.modalClose();
+      if (forgetKeyHandler) {
+        document.removeEventListener('keydown', forgetKeyHandler);
+        forgetKeyHandler = null;
+      }
+    }
+
+    if (forgetSiteBtn) {
+      forgetSiteBtn.addEventListener('click', openForgetModal);
+    }
     homeBtn.addEventListener('click', () => window.vitamin.goHome());
 
     // Tab management
@@ -3998,6 +4336,9 @@ https://www.coindesk.com"></textarea>
         const tabEl = document.createElement('div');
         const title = safeText(tab.title || 'New Tab');
         tabEl.className = `tab ${tab.id === data.activeTabId ? 'active' : ''}`;
+        if (tab.sleeping) {
+          tabEl.classList.add('sleeping');
+        }
         tabEl.dataset.tabId = tab.id;
         tabEl.title = title;
 
@@ -4010,6 +4351,28 @@ https://www.coindesk.com"></textarea>
         titleEl.textContent = title;
         tabEl.appendChild(titleEl);
 
+        const badgesEl = document.createElement('div');
+        badgesEl.className = 'tab-badges';
+
+        if (tab.sleeping) {
+          const sleepBadge = document.createElement('span');
+          sleepBadge.className = 'tab-sleep-badge';
+          sleepBadge.textContent = 'sleep';
+          badgesEl.appendChild(sleepBadge);
+        }
+
+        if (tab.autoClearOnClose) {
+          const clearBadge = document.createElement('span');
+          clearBadge.className = 'tab-clear-badge';
+          clearBadge.textContent = 'auto';
+          badgesEl.appendChild(clearBadge);
+        }
+
+        if (badgesEl.childElementCount > 0) {
+          tabEl.classList.add('has-badges');
+          tabEl.appendChild(badgesEl);
+        }
+
         // Click tab to switch
         tabEl.addEventListener('click', () => {
           window.vitamin.switchTab(tab.id);
@@ -4018,6 +4381,7 @@ https://www.coindesk.com"></textarea>
         // Right-click tab context menu
         tabEl.addEventListener('contextmenu', (e) => {
           e.preventDefault();
+          e.stopPropagation();
           showTabContextMenu(tab.id, e.clientX, e.clientY);
         });
 
@@ -4031,94 +4395,11 @@ https://www.coindesk.com"></textarea>
       }
     }
 
-    // Tab context menu
     function showTabContextMenu(tabId, x, y) {
-      // Remove any existing context menu
-      const existingMenu = document.getElementById('tab-context-menu');
-      if (existingMenu) existingMenu.remove();
-
-      // Create context menu
-      const menu = document.createElement('div');
-      menu.id = 'tab-context-menu';
-      menu.className = 'context-menu';
-      menu.style.position = 'fixed';
-      menu.style.left = `${x}px`;
-      menu.style.top = `${y}px`;
-      menu.style.zIndex = '10000';
-
-      // Get tab data
-      const tabData = window.currentTabsData ? window.currentTabsData.tabs.find(t => t.id === tabId) : null;
-
-      // Menu items
-      menu.innerHTML = `
-        <div class="context-menu-item" data-action="new-tab">
-          <span>New Tab</span>
-        </div>
-        <div class="context-menu-item" data-action="duplicate-tab">
-          <span>Duplicate</span>
-        </div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item" data-action="close-tab">
-          <span>Close</span>
-        </div>
-        <div class="context-menu-item" data-action="close-other-tabs">
-          <span>Close Other Tabs</span>
-        </div>
-        <div class="context-menu-item" data-action="close-tabs-to-right">
-          <span>Close Tabs to the Right</span>
-        </div>
-      `;
-
-      // Add to document
-      document.body.appendChild(menu);
-
-      // Add event listeners to menu items
-      menu.querySelectorAll('.context-menu-item').forEach(item => {
-        item.addEventListener('click', () => {
-          const action = item.dataset.action;
-          switch (action) {
-            case 'new-tab':
-              window.vitamin.createTab();
-              break;
-            case 'duplicate-tab':
-              // We'll need to implement this in the main process
-              window.vitamin.duplicateTab(tabId);
-              break;
-            case 'close-tab':
-              window.vitamin.closeTab(tabId);
-              break;
-            case 'close-other-tabs':
-              // This would need to be implemented in the main process
-              window.vitamin.closeOtherTabs(tabId);
-              break;
-            case 'close-tabs-to-right':
-              // This would need to be implemented in the main process
-              window.vitamin.closeTabsToRight(tabId);
-              break;
-          }
-          menu.remove();
-        });
-      });
-
-      // Close menu when clicking elsewhere
-      const closeMenu = (e) => {
-        if (!menu.contains(e.target)) {
-          menu.remove();
-          document.removeEventListener('click', closeMenu);
-        }
-      };
-      setTimeout(() => {
-        document.addEventListener('click', closeMenu);
-      }, 0);
-
-      // Close menu on Escape key
-      const handleEscape = (e) => {
-        if (e.key === 'Escape') {
-          menu.remove();
-          document.removeEventListener('keydown', handleEscape);
-        }
-      };
-      document.addEventListener('keydown', handleEscape);
+      if (!window.vitamin || !window.vitamin.showTabContextMenu) return;
+      const screenX = window.screenX || 0;
+      const screenY = window.screenY || 0;
+      window.vitamin.showTabContextMenu(tabId, screenX + x, screenY + y);
     }
 
     // Listen for tab updates
@@ -4273,7 +4554,7 @@ https://www.coindesk.com"></textarea>
     const adblockToggle = document.getElementById('adblock-toggle');
     const aggressiveAdblockToggle = document.getElementById('aggressive-adblock-toggle');
     const popupToggle = document.getElementById('popup-toggle');
-    const fingerprintToggle = document.getElementById('fingerprint-toggle');
+    const fingerprintTestToggle = document.getElementById('fingerprint-test-toggle');
     const blockedCount = document.getElementById('blocked-count');
     const autoUpdateToggle = document.getElementById('auto-update-toggle');
 
@@ -4282,7 +4563,7 @@ https://www.coindesk.com"></textarea>
     let adBlockEnabled = true;
     let aggressiveAdblockEnabled = true;
     let popupBlockingEnabled = true;
-    let fingerprintBlocked = true;
+    let fingerprintTestsBlocked = true;
     let autoUpdateEnabled = true;
     let availablePersonas = []; // Store available personas for lookup
 
@@ -4422,10 +4703,10 @@ https://www.coindesk.com"></textarea>
     });
 
     // Fingerprint test blocking toggle
-    fingerprintToggle.addEventListener('click', () => {
-      fingerprintBlocked = !fingerprintBlocked;
-      fingerprintToggle.classList.toggle('on', fingerprintBlocked);
-      window.vitamin.togglefingerprint(fingerprintBlocked);
+    fingerprintTestToggle.addEventListener('click', () => {
+      fingerprintTestsBlocked = !fingerprintTestsBlocked;
+      fingerprintTestToggle.classList.toggle('on', fingerprintTestsBlocked);
+      window.vitamin.toggleFingerprintTests(fingerprintTestsBlocked);
     });
 
     // Auto-update toggle
@@ -4506,8 +4787,8 @@ https://www.coindesk.com"></textarea>
         popupToggle.classList.toggle('on', popupBlockingEnabled);
 
         // Update fingerprint test blocking UI
-        fingerprintBlocked = settings.blockfingerprint !== false;
-        fingerprintToggle.classList.toggle('on', fingerprintBlocked);
+        fingerprintTestsBlocked = settings.blockFingerprintTests !== false;
+        fingerprintTestToggle.classList.toggle('on', fingerprintTestsBlocked);
 
         // Update auto-update UI
         autoUpdateEnabled = settings.autoUpdate !== false;
@@ -4730,6 +5011,9 @@ https://www.coindesk.com"></textarea>
 
     window.vitamin.onUrlChanged((url) => {
       currentUrl = url;
+      if (forgetSiteBtn) {
+        forgetSiteBtn.disabled = !(currentUrl && !currentUrl.startsWith('file://'));
+      }
       updateBookmarkBtnState();
     });
 
@@ -4849,6 +5133,20 @@ https://www.coindesk.com"></textarea>
             window.vitamin.leftPanelClose();
           }
         });
+
+        item.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!window.vitamin || !window.vitamin.showBookmarkContextMenu) return;
+          const screenX = window.screenX || 0;
+          const screenY = window.screenY || 0;
+          window.vitamin.showBookmarkContextMenu({
+            url: item.dataset.url,
+            title: item.dataset.title,
+            x: screenX + e.clientX,
+            y: screenY + e.clientY
+          });
+        });
       });
 
       // Edit bookmark
@@ -4870,6 +5168,25 @@ https://www.coindesk.com"></textarea>
         });
       });
     }
+
+    window.vitamin.onBookmarkContextAction(async (data) => {
+      if (!data || !data.action) return;
+      if (data.action === 'open') {
+        window.vitamin.navigate(data.url);
+        bookmarksPanel.classList.remove('open');
+        window.vitamin.leftPanelClose();
+        return;
+      }
+      if (data.action === 'edit') {
+        showBookmarkEditModal(data.url, data.title || data.url);
+        return;
+      }
+      if (data.action === 'remove') {
+        await window.vitamin.removeBookmark(data.url);
+        await renderBookmarks();
+        updateBookmarkBtnState();
+      }
+    });
 
     // Bookmark edit modal
     function showBookmarkEditModal(oldUrl, oldTitle) {
@@ -6024,6 +6341,38 @@ https://www.coindesk.com"></textarea>
   </script>
 
 <!-- Nuke Modals -->
+  <div class="modal-overlay" id="forget-modal" style="display: none;">
+    <div class="forget-modal">
+      <div class="forget-header">
+        <div class="forget-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/>
+            <path d="M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="forget-title">Forget This Site</div>
+          <div class="forget-subtitle">Clear data for <span id="forget-site-domain">this site</span></div>
+        </div>
+      </div>
+      <div class="forget-warning">
+        This will reset the site in this browser. You may be signed out and preferences will be lost.
+      </div>
+      <ul class="forget-list">
+        <li>Cookies & session tokens</li>
+        <li>Local storage & site cache</li>
+        <li>Service workers & IndexedDB</li>
+      </ul>
+      <div class="forget-actions">
+        <button class="forget-cancel-btn" id="forget-cancel">Cancel</button>
+        <button class="forget-confirm-btn" id="forget-confirm">Forget Now</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="nuke-modal" style="display: none;">
     <div class="nuke-warning-modal">
       <div class="nuke-warning-header">

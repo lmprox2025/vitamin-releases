@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('vitamin', {
   goForward: () => ipcRenderer.send('go-forward'),
   refresh: () => ipcRenderer.send('refresh'),
   goHome: () => ipcRenderer.send('go-home'),
+  forgetSite: () => ipcRenderer.invoke('forget-site'),
 
   // Theme
   setTheme: (theme) => ipcRenderer.send('set-theme', theme),
@@ -19,6 +20,9 @@ contextBridge.exposeInMainWorld('vitamin', {
   duplicateTab: (tabId) => ipcRenderer.send('duplicate-tab', tabId),
   closeOtherTabs: (tabId) => ipcRenderer.send('close-other-tabs', tabId),
   closeTabsToRight: (tabId) => ipcRenderer.send('close-tabs-to-right', tabId),
+  showTabContextMenu: (tabId, x, y) => ipcRenderer.send('show-tab-context-menu', { tabId, x, y }),
+  showUrlContextMenu: (x, y) => ipcRenderer.send('show-url-context-menu', { x, y }),
+  showBookmarkContextMenu: (data) => ipcRenderer.send('show-bookmark-context-menu', data),
 
   // Poisoning
   togglePoison: (enabled) => ipcRenderer.send('toggle-poison', enabled),
@@ -38,7 +42,7 @@ contextBridge.exposeInMainWorld('vitamin', {
   toggleAdBlock: (enabled) => ipcRenderer.send('toggle-adblock', enabled),
   toggleAggressiveAdBlock: (enabled) => ipcRenderer.send('toggle-aggressive-adblock', enabled),
   togglePopups: (enabled) => ipcRenderer.send('toggle-popups', enabled),
-  togglefingerprint: (enabled) => ipcRenderer.send('toggle-fingerprint-tests', enabled),
+  toggleFingerprintTests: (enabled) => ipcRenderer.send('toggle-fingerprint-tests', enabled),
   toggleAutoUpdate: (enabled) => ipcRenderer.send('toggle-auto-update', enabled),
 
   // Bookmarks
@@ -138,5 +142,6 @@ contextBridge.exposeInMainWorld('vitamin', {
   onPoisonStats: (callback) => ipcRenderer.on('poison-stats', (event, stats) => callback(stats)),
   onBlockedCount: (callback) => ipcRenderer.on('blocked-count', (event, count) => callback(count)),
   onOnboardingCompleted: (callback) => ipcRenderer.on('onboarding-completed', () => callback()),
-  onSettingsChanged: (callback) => ipcRenderer.on('settings-changed', () => callback())
+  onSettingsChanged: (callback) => ipcRenderer.on('settings-changed', () => callback()),
+  onBookmarkContextAction: (callback) => ipcRenderer.on('bookmark-context-action', (event, data) => callback(data))
 });

@@ -3,6 +3,32 @@ const { ElectronBlocker } = require('@ghostery/adblocker-electron');
 const fetch = require('cross-fetch');
 const fs = require('fs');
 const path = require('path');
+const { fileURLToPath } = require('url');
+
+const INTERNAL_HTML_DIR = path.resolve(__dirname, 'html');
+
+function isInternalFileUrl(url) {
+  if (!url || !url.startsWith('file://')) return false;
+  try {
+    const filePath = fileURLToPath(url);
+    const resolvedPath = path.resolve(filePath);
+    return resolvedPath.startsWith(INTERNAL_HTML_DIR + path.sep);
+  } catch (err) {
+    return false;
+  }
+}
+
+function isTrustedSender(event) {
+  const senderUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || '';
+  return isInternalFileUrl(senderUrl);
+}
+
+function denyIfUntrusted(event, channel) {
+  if (isTrustedSender(event)) return false;
+  const senderUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || 'unknown';
+  console.warn(`[SECURITY] Blocked ${channel} from ${senderUrl}`);
+  return true;
+}
 
 let blocker = null;
 let blockedCount = 0;
@@ -108,7 +134,16 @@ function ensureCosmeticSupport() {
       if (!blocker || !adBlockingEnabled) {
         return { active: false, styles: '', scripts: [], extended: [] };
       }
-      return blocker.onInjectCosmeticFilters(event, url, data);
+      try {
+        const result = await blocker.onInjectCosmeticFilters(event, url, data);
+        if (!result) {
+          return { active: false, styles: '', scripts: [], extended: [] };
+        }
+        return { ...result, scripts: [] };
+      } catch (err) {
+        console.warn('Cosmetic filter injection failed:', err.message);
+        return { active: false, styles: '', scripts: [], extended: [] };
+      }
     });
 
     ipcMain.handle('@ghostery/adblocker/is-mutation-observer-enabled', async (event) => {
@@ -317,6 +352,7 @@ function getBlockedCount() {
 
 function registerIPC(saveSettings) {
   ipcMain.on('toggle-adblock', (event, enabled) => {
+    if (denyIfUntrusted(event, 'toggle-adblock')) return;
     const settings = getSettings();
     settings.adBlockEnabled = enabled;
     saveSettings();

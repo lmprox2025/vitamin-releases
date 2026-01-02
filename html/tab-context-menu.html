@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tab Menu</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #141414;
+      --bg-tertiary: #1a1a1a;
+      --accent: #ff6b00;
+      --accent-dim: #cc5500;
+      --text-primary: #ffffff;
+      --text-secondary: #888888;
+      --text-muted: #555555;
+      --border: #252525;
+    }
+
+    body.light {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --bg-tertiary: #e0e0e0;
+      --text-primary: #333333;
+      --text-secondary: #666666;
+      --text-muted: #999999;
+      --border: #b0b0b0;
+      --accent: #ff6b00;
+      --accent-dim: #cc5500;
+    }
+
+    body.blueberry {
+      --accent: #4a90d9;
+      --accent-dim: #3a7bc8;
+    }
+
+    body.acai {
+      --accent: #9b59b6;
+      --accent-dim: #8e44ad;
+    }
+
+    body.emerald {
+      --accent: #2ecc71;
+      --accent-dim: #27ae60;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      background: transparent;
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    .context-menu {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+      padding: 4px 0;
+      position: relative;
+    }
+
+    .context-menu-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+    }
+
+    .context-menu-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .context-menu-item.disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .context-menu-label {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .context-menu-check {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      line-height: 1;
+      color: #ffffff;
+      flex-shrink: 0;
+      opacity: 0.4;
+    }
+
+    .context-menu-check.placeholder {
+      opacity: 0;
+    }
+
+    .context-menu-item.is-checked .context-menu-check {
+      background: var(--accent);
+      border-color: transparent;
+      opacity: 1;
+    }
+
+    .context-menu-desc {
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      transform: translate(10px, -50%);
+      background: rgba(20, 20, 20, 0.94);
+      color: #f4f4f4;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      z-index: 2;
+    }
+
+    .context-menu-item:hover .context-menu-desc {
+      opacity: 1;
+    }
+
+    .context-menu[data-tooltip-side="left"] .context-menu-desc {
+      left: auto;
+      right: 100%;
+      transform: translate(-10px, -50%);
+    }
+
+    .context-menu-separator {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="context-menu" id="menu" role="menu" aria-hidden="true"></div>
+
+  <script>
+    const menu = document.getElementById('menu');
+
+    function applyTheme(theme) {
+      document.body.classList.remove('light', 'blueberry', 'acai', 'emerald');
+      if (theme && theme !== 'dark') {
+        document.body.classList.add(theme);
+      }
+    }
+
+    function renderMenu(data) {
+      if (!data || !Array.isArray(data.items)) return;
+      applyTheme(data.theme);
+      menu.dataset.tooltipSide = data.tooltipSide || 'right';
+      menu.innerHTML = '';
+
+      data.items.forEach((item) => {
+        if (item.type === 'separator') {
+          const separator = document.createElement('div');
+          separator.className = 'context-menu-separator';
+          menu.appendChild(separator);
+          return;
+        }
+
+        const row = document.createElement('div');
+        row.className = 'context-menu-item';
+        if (!item.enabled) {
+          row.classList.add('disabled');
+        }
+        if (item.checked) {
+          row.classList.add('is-checked');
+        }
+
+        const check = document.createElement('span');
+        check.className = 'context-menu-check';
+        if (!item.checkable) {
+          check.classList.add('placeholder');
+        } else if (item.checked) {
+          check.textContent = 'x';
+        }
+        row.appendChild(check);
+
+        const label = document.createElement('span');
+        label.className = 'context-menu-label';
+        label.textContent = item.label || '';
+        row.appendChild(label);
+
+        if (item.desc) {
+          const desc = document.createElement('span');
+          desc.className = 'context-menu-desc';
+          desc.textContent = item.desc;
+          row.appendChild(desc);
+        }
+
+        if (item.enabled && item.action) {
+          row.addEventListener('click', (event) => {
+            event.stopPropagation();
+            window.tabMenu.sendAction(item.action, item.payload || {});
+            window.tabMenu.closeMenu();
+          });
+        }
+
+        menu.appendChild(row);
+      });
+    }
+
+    window.tabMenu.onMenuData(renderMenu);
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        window.tabMenu.closeMenu();
+      }
+    });
+
+    document.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      window.tabMenu.closeMenu();
+    });
+  </script>
+</body>
+</html>

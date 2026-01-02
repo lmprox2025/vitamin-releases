@@ -1,17 +1,8 @@
 const { ipcRenderer } = require('electron');
-const fs = require('fs');
 const path = require('path');
 const { fileURLToPath } = require('url');
 
 const INTERNAL_HTML_DIR = path.resolve(__dirname, 'html');
-const FINGERPRINT_SCRIPT_PATH = path.join(__dirname, 'fingerprint-protection.js');
-let fingerprintScript = '';
-
-try {
-  fingerprintScript = fs.readFileSync(FINGERPRINT_SCRIPT_PATH, 'utf8');
-} catch (err) {
-  console.error('Failed to load fingerprint protection script:', err.message);
-}
 
 function isInternalFile() {
   try {
@@ -53,7 +44,7 @@ function getPrivacySettingsSync() {
   try {
     return ipcRenderer.sendSync('get-privacy-settings-sync');
   } catch (err) {
-    return { blockFingerprinting: true, blockfingerprint: false };
+    return { blockFingerprinting: true, blockFingerprintTests: false };
   }
 }
 
@@ -91,13 +82,8 @@ function injectFingerprintTestBlocker() {
 }
 
 const privacySettings = getPrivacySettingsSync();
-const fingerprintingEnabled = privacySettings.blockFingerprinting !== false;
-const fingerprintBlocked = privacySettings.blockfingerprint === true;
+const fingerprintTestsBlocked = privacySettings.blockFingerprintTests === true;
 
-if (!isInternalFile() && fingerprintBlocked && isFingerprintTestHost()) {
+if (!isInternalFile() && fingerprintTestsBlocked && isFingerprintTestHost()) {
   injectFingerprintTestBlocker();
-}
-
-if (!isInternalFile() && fingerprintingEnabled) {
-  injectScriptIntoPage(fingerprintScript);
 }
